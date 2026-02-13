@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 
 export const FileList = () => {
-  const { scripts, selectedScript, setSelectedScript, findings, ignoredFindings } = useApp();
+  const { scripts, selectedScript, setSelectedScript, findings, ignoredFindings, setScripts, setFindings } = useApp();
 
   // Group scripts by domain
   const groupedByDomain = useMemo(() => {
@@ -125,6 +125,32 @@ export const FileList = () => {
     return null;
   };
 
+  const handleRemoveScript = (scriptToRemove, e) => {
+    e.stopPropagation(); // Prevent selecting the script
+
+    // Confirm removal
+    const fileName = getFileName(scriptToRemove.url);
+    if (!confirm(`Remove "${fileName}" from the list?\n\nThis will also remove all associated findings.`)) {
+      return;
+    }
+
+    // Remove script from list
+    setScripts(prev => prev.filter(s => s.url !== scriptToRemove.url));
+
+    // Remove associated findings
+    setFindings(prev => prev.filter(f => f.scriptUrl !== scriptToRemove.url));
+
+    // If this was the selected script, clear selection or select another
+    if (selectedScript?.url === scriptToRemove.url) {
+      const remainingScripts = scripts.filter(s => s.url !== scriptToRemove.url);
+      if (remainingScripts.length > 0) {
+        setSelectedScript(remainingScripts[0]);
+      } else {
+        setSelectedScript(null);
+      }
+    }
+  };
+
   const ScriptItem = ({ script }) => {
     const badge = getRiskBadge(script);
     const typeInfo = getScriptTypeInfo(script);
@@ -132,59 +158,64 @@ export const FileList = () => {
 
     return (
       <div
-        onClick={() => setSelectedScript(script)}
-        className={`p-3 cursor-pointer border-l-4 transition-all ${
+        className={`group relative p-3 cursor-pointer border-l-4 transition-all ${
           isSelected
             ? 'bg-dark-700 border-white'
             : 'bg-dark-850 border-transparent hover:bg-dark-800 hover:border-dark-600'
         }`}
       >
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium text-white truncate" title={script.url}>
-              {getFileName(script.url)}
+        <div onClick={() => setSelectedScript(script)}>
+          <div className="flex items-start justify-between mb-2">
+            <div className="flex-1 min-w-0 pr-2">
+              <div className="text-sm font-medium text-white truncate" title={script.url}>
+                {getFileName(script.url)}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                {formatSize(script.size)}
+              </div>
             </div>
-            <div className="text-xs text-gray-500 mt-1">
-              {formatSize(script.size)}
+
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              <div className={`px-2 py-1 rounded text-xs font-bold text-white ${badge.color}`}>
+                {badge.text}
+              </div>
+
+              {/* Delete Button */}
+              <button
+                onClick={(e) => handleRemoveScript(script, e)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-900 rounded"
+                title="Remove script"
+              >
+                <svg className="w-4 h-4 text-red-400 hover:text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
           </div>
 
-          <div className={`ml-2 px-2 py-1 rounded text-xs font-bold text-white ${badge.color} flex-shrink-0`}>
-            {badge.text}
+          {/* Badges Section */}
+          <div className="flex flex-wrap gap-2 mt-2">
+            {/* Import Type Badge */}
+            {typeInfo && (
+              <span className={`text-xs px-2 py-1 rounded border ${typeInfo.color}`}>
+                {typeInfo.badge}
+              </span>
+            )}
+
+            {/* Source Map Badge */}
+            {script.hasSourceMap && (
+              <span className="text-xs bg-dark-700 text-white px-2 py-1 rounded border border-dark-600">
+                📍 Source Map
+              </span>
+            )}
+
+            {/* File Name Badge (for imported files) */}
+            {script.type === 'imported' && script.fileName && (
+              <span className="text-xs bg-dark-800 text-gray-300 px-2 py-1 rounded border border-dark-600 font-mono">
+                {script.fileName}
+              </span>
+            )}
           </div>
-        </div>
-
-        {/* Badges Section */}
-        <div className="flex flex-wrap gap-2 mt-2">
-          {/* Import Type Badge */}
-          {typeInfo && (
-            <span className={`text-xs px-2 py-1 rounded border ${typeInfo.color}`}>
-              {typeInfo.badge}
-            </span>
-          )}
-
-          {/* Source Map Badge */}
-          {script.hasSourceMap && (
-            <span className="text-xs bg-dark-700 text-white px-2 py-1 rounded border border-dark-600">
-              📍 Source Map
-            </span>
-          )}
-
-          {/* Fetch Error Badge */}
-          {script.fetchError && (
-            <span className="text-xs bg-red-900 text-red-200 px-2 py-1 rounded border border-red-700">
-              ⚠️ {script.fetchError === 'CORS_ERROR' ? 'CORS Blocked' :
-                   script.fetchError === 'FETCH_FAILED' ? 'Fetch Failed' :
-                   script.fetchError}
-            </span>
-          )}
-
-          {/* File Name Badge (for imported files) */}
-          {script.type === 'imported' && script.fileName && (
-            <span className="text-xs bg-dark-800 text-gray-300 px-2 py-1 rounded border border-dark-600 font-mono">
-              {script.fileName}
-            </span>
-          )}
         </div>
       </div>
     );
