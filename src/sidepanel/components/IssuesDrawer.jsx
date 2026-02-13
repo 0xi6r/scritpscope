@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 
 export const IssuesDrawer = () => {
   const { findings, selectedFinding, setSelectedFinding, selectedScript, setFindings } = useApp();
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(true); // Start minimized
   const [ignoredFindings, setIgnoredFindings] = useState(new Set());
 
   const scriptFindings = useMemo(() => {
@@ -51,20 +51,22 @@ export const IssuesDrawer = () => {
 
   if (!selectedScript) {
     return (
-      <div className="h-16 bg-gray-800 border-t border-gray-700 flex items-center justify-center text-gray-400 text-sm">
+      <div className="h-12 bg-gray-800 border-t border-gray-700 flex items-center justify-center text-gray-400 text-xs">
         Select a script to view security findings
       </div>
     );
   }
 
+  // Minimized view - always at bottom
   if (isMinimized) {
     return (
-      <div className="bg-gray-800 border-t border-gray-700 flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-gray-750"
+      <div
+        className="bg-gray-800 border-t-2 border-gray-700 flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-gray-750 transition-colors"
         onClick={() => setIsMinimized(false)}
       >
         <div className="flex items-center space-x-3">
-          <button className="text-blue-400 hover:text-blue-300">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button className="text-blue-400 hover:text-blue-300 transition-colors">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
             </svg>
           </button>
@@ -73,32 +75,48 @@ export const IssuesDrawer = () => {
           </h3>
           {scriptFindings.length > 0 && (
             <div className="flex items-center space-x-2 text-xs">
-              <span className="text-red-400">
-                {getRiskIcon('HIGH')} {groupedFindings.HIGH.length}
-              </span>
-              <span className="text-orange-400">
-                {getRiskIcon('MEDIUM')} {groupedFindings.MEDIUM.length}
-              </span>
-              <span className="text-yellow-400">
-                {getRiskIcon('LOW')} {groupedFindings.LOW.length}
-              </span>
+              {groupedFindings.HIGH.length > 0 && (
+                <span className="text-red-400 flex items-center">
+                  {getRiskIcon('HIGH')} <span className="ml-1">{groupedFindings.HIGH.length}</span>
+                </span>
+              )}
+              {groupedFindings.MEDIUM.length > 0 && (
+                <span className="text-orange-400 flex items-center">
+                  {getRiskIcon('MEDIUM')} <span className="ml-1">{groupedFindings.MEDIUM.length}</span>
+                </span>
+              )}
+              {groupedFindings.LOW.length > 0 && (
+                <span className="text-yellow-400 flex items-center">
+                  {getRiskIcon('LOW')} <span className="ml-1">{groupedFindings.LOW.length}</span>
+                </span>
+              )}
             </div>
           )}
         </div>
-        <span className="text-xs text-gray-400">Click to expand</span>
+        <div className="flex items-center space-x-2">
+          {scriptFindings.length === 0 && (
+            <span className="text-xs text-green-400 flex items-center">
+              <span className="mr-1">✅</span>
+              Clean
+            </span>
+          )}
+          <span className="text-xs text-gray-500">Click to expand</span>
+        </div>
       </div>
     );
   }
 
+  // Expanded view
   return (
-    <div className="bg-gray-800 border-t border-gray-700 flex flex-col" style={{ height: '320px' }}>
+    <div className="bg-gray-800 border-t-2 border-gray-700 flex flex-col h-full">
       <div className="px-4 py-2 bg-gray-900 border-b border-gray-700 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center space-x-3">
           <button
             onClick={() => setIsMinimized(true)}
-            className="text-blue-400 hover:text-blue-300"
+            className="text-blue-400 hover:text-blue-300 transition-colors"
+            title="Minimize"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
@@ -107,14 +125,14 @@ export const IssuesDrawer = () => {
           </h3>
         </div>
         <div className="flex items-center space-x-3 text-xs">
-          <span className="text-red-400">
-            {getRiskIcon('HIGH')} {groupedFindings.HIGH.length} High
+          <span className="text-red-400 flex items-center">
+            {getRiskIcon('HIGH')} <span className="ml-1">{groupedFindings.HIGH.length} High</span>
           </span>
-          <span className="text-orange-400">
-            {getRiskIcon('MEDIUM')} {groupedFindings.MEDIUM.length} Medium
+          <span className="text-orange-400 flex items-center">
+            {getRiskIcon('MEDIUM')} <span className="ml-1">{groupedFindings.MEDIUM.length} Medium</span>
           </span>
-          <span className="text-yellow-400">
-            {getRiskIcon('LOW')} {groupedFindings.LOW.length} Low
+          <span className="text-yellow-400 flex items-center">
+            {getRiskIcon('LOW')} <span className="ml-1">{groupedFindings.LOW.length} Low</span>
           </span>
         </div>
       </div>
@@ -122,10 +140,10 @@ export const IssuesDrawer = () => {
       <div className="flex-1 overflow-y-auto">
         {scriptFindings.length === 0 ? (
           <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-            <div className="text-center">
-              <div className="text-3xl mb-2">✅</div>
-              <p className="font-medium text-green-400">No security issues detected</p>
-              <p className="text-xs mt-1">This script appears to be clean</p>
+            <div className="text-center p-8">
+              <div className="text-4xl mb-3">✅</div>
+              <p className="font-medium text-green-400 text-lg">No security issues detected</p>
+              <p className="text-xs mt-2">This script appears to be clean</p>
             </div>
           </div>
         ) : (
@@ -158,7 +176,10 @@ export const IssuesDrawer = () => {
                         </span>
                       </div>
                       <button
-                        onClick={() => handleIgnoreFinding(finding)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleIgnoreFinding(finding);
+                        }}
                         className="ml-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition-colors"
                         title="Ignore this finding"
                       >
