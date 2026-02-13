@@ -1,14 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 
-export const IssuesDrawer = () => {
+export const IssuesDrawer = ({ isMinimized, onToggle }) => {
   const { findings, selectedFinding, setSelectedFinding, selectedScript, setFindings } = useApp();
-  const [isMinimized, setIsMinimized] = useState(true); // Start minimized
   const [ignoredFindings, setIgnoredFindings] = useState(new Set());
 
   const scriptFindings = useMemo(() => {
     if (!selectedScript) return [];
-    return findings.filter(f =>
+    return findings.filter(f => 
       f.scriptUrl === selectedScript.url && !ignoredFindings.has(f.index + '-' + f.line)
     );
   }, [findings, selectedScript, ignoredFindings]);
@@ -42,16 +41,16 @@ export const IssuesDrawer = () => {
   const handleIgnoreFinding = (finding) => {
     const key = finding.index + '-' + finding.line;
     setIgnoredFindings(prev => new Set([...prev, key]));
-
+    
     // Remove from findings list
-    setFindings(prev => prev.filter(f =>
+    setFindings(prev => prev.filter(f => 
       !(f.scriptUrl === finding.scriptUrl && f.line === finding.line && f.index === finding.index)
     ));
   };
 
   if (!selectedScript) {
     return (
-      <div className="h-12 bg-gray-800 border-t border-gray-700 flex items-center justify-center text-gray-400 text-xs">
+      <div className="h-full bg-gray-800 border-t border-gray-700 flex items-center justify-center text-gray-400 text-xs">
         Select a script to view security findings
       </div>
     );
@@ -60,9 +59,9 @@ export const IssuesDrawer = () => {
   // Minimized view - always at bottom
   if (isMinimized) {
     return (
-      <div
-        className="bg-gray-800 border-t-2 border-gray-700 flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-gray-750 transition-colors"
-        onClick={() => setIsMinimized(false)}
+      <div 
+        className="h-full bg-gray-800 border-t-2 border-gray-700 flex items-center justify-between px-4 cursor-pointer hover:bg-gray-750 transition-colors"
+        onClick={() => onToggle(false)}
       >
         <div className="flex items-center space-x-3">
           <button className="text-blue-400 hover:text-blue-300 transition-colors">
@@ -108,11 +107,11 @@ export const IssuesDrawer = () => {
 
   // Expanded view
   return (
-    <div className="bg-gray-800 border-t-2 border-gray-700 flex flex-col h-full">
+    <div className="h-full bg-gray-800 border-t-2 border-gray-700 flex flex-col">
       <div className="px-4 py-2 bg-gray-900 border-b border-gray-700 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center space-x-3">
-          <button
-            onClick={() => setIsMinimized(true)}
+          <button 
+            onClick={() => onToggle(true)}
             className="text-blue-400 hover:text-blue-300 transition-colors"
             title="Minimize"
           >
@@ -150,7 +149,7 @@ export const IssuesDrawer = () => {
           ['HIGH', 'MEDIUM', 'LOW'].map(risk => (
             groupedFindings[risk].length > 0 && (
               <div key={risk} className="border-b border-gray-700">
-                <div className="px-4 py-2 bg-gray-850 text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center">
+                <div className="px-4 py-2 bg-gray-850 text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center sticky top-0">
                   <span className="mr-2">{getRiskIcon(risk)}</span>
                   {risk} Risk ({groupedFindings[risk].length})
                 </div>
@@ -164,7 +163,7 @@ export const IssuesDrawer = () => {
                     }`}
                   >
                     <div className="flex items-start justify-between mb-1">
-                      <div
+                      <div 
                         className="flex-1 cursor-pointer"
                         onClick={() => setSelectedFinding(finding)}
                       >
