@@ -7,18 +7,14 @@ export default defineConfig({
   plugins: [
     react(),
     {
-      name: 'copy-manifest',
+      name: 'copy-files',
       writeBundle() {
         // Copy manifest.json to dist
         copyFileSync('manifest.json', 'dist/manifest.json');
 
-        // Create icons directory and copy icons
+        // Create icons directory
         try {
           mkdirSync('dist/icons', { recursive: true });
-          // If you have icons, copy them here
-          // copyFileSync('public/icons/icon16.png', 'dist/icons/icon16.png');
-          // copyFileSync('public/icons/icon48.png', 'dist/icons/icon48.png');
-          // copyFileSync('public/icons/icon128.png', 'dist/icons/icon128.png');
         } catch (e) {
           console.log('Icons directory handling:', e.message);
         }
@@ -28,6 +24,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    minify: false, // Disable minification for service workers
     rollupOptions: {
       input: {
         sidepanel: resolve(__dirname, 'sidepanel.html'),
@@ -36,7 +33,6 @@ export default defineConfig({
       },
       output: {
         entryFileNames: (chunkInfo) => {
-          // Keep the same directory structure
           const name = chunkInfo.name;
           if (name === 'background') {
             return 'src/background/index.js';
@@ -48,7 +44,6 @@ export default defineConfig({
         },
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: (assetInfo) => {
-          // Handle different asset types
           if (assetInfo.name === 'sidepanel.html') {
             return 'sidepanel.html';
           }
