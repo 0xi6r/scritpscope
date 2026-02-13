@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# create-icons.sh - Generate placeholder icons
+
+mkdir -p public/icons
+
+# Create simple colored squares as placeholders (requires ImageMagick)
+# If you don't have ImageMagick, you can create them manually or download icons
+
+# For now, let's create a simple HTML that generates them
+cat > generate-icons.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head><title>Generate Icons</title></head>
+<body>
+  <canvas id="canvas16" width="16" height="16"></canvas>
+  <canvas id="canvas48" width="48" height="48"></canvas>
+  <canvas id="canvas128" width="128" height="128"></canvas>
+
+  <script>
+    function createIcon(canvasId, size) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext('2d');
+
+      // Background
+      ctx.fillStyle = '#3B82F6';
+      ctx.fillRect(0, 0, size, size);
+
+      // Add "S" for ScriptScope
+      ctx.fillStyle = 'white';
+      ctx.font = `bold ${size * 0.6}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('S', size / 2, size / 2);
+
+      // Download
+      canvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `icon${size}.png`;
+        a.click();
+      });
+    }
+
+    createIcon('canvas16', 16);
+    setTimeout(() => createIcon('canvas48', 48), 500);
+    setTimeout(() => createIcon('canvas128', 128), 1000);
+  </script>
+
+  <p>Icons will download automatically. Save them to public/icons/</p>
+</body>
+</html>
+EOF
+
+echo "Open generate-icons.html in a browser to create placeholder icons"
