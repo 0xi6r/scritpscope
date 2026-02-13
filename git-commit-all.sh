@@ -36,7 +36,7 @@ fi
 # 1. Project Configuration Files
 commit_with_message "feat: Initialize project with package.json and build configuration" \
     package.json \
-    vite.config.ts \
+    vite.config.js \
     tailwind.config.js \
     postcss.config.js \
     .gitignore
