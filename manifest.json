@@ -17,11 +17,8 @@
     "service_worker": "src/background/index.js",
     "type": "module"
   },
-  "side_panel": {
-    "default_path": "sidepanel.html"
-  },
   "action": {
-    "default_title": "Open ScriptScope"
+    "default_title": "Toggle ScriptScope"
   },
   "content_scripts": [
     {

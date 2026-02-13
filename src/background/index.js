@@ -1,48 +1,101 @@
 // Background service worker for ScriptScope
 
-// Track which tabs have the side panel open
-const sidePanelTabs = new Set();
+// Track which tabs have the side panel explicitly opened
+const activeTabs = new Set();
 
+// Handle extension icon clicks
 chrome.action.onClicked.addListener(async (tab) => {
-  // Toggle side panel for this specific tab
-  await chrome.sidePanel.open({ tabId: tab.id });
-  sidePanelTabs.add(tab.id);
+  try {
+    // Toggle side panel for this specific tab
+    if (activeTabs.has(tab.id)) {
+      // Close side panel
+      activeTabs.delete(tab.id);
+      await chrome.sidePanel.setOptions({
+        tabId: tab.id,
+        enabled: false
+      });
+    } else {
+      // Open side panel
+      activeTabs.add(tab.id);
+      await chrome.sidePanel.setOptions({
+        tabId: tab.id,
+        enabled: true
+      });
+      await chrome.sidePanel.open({ tabId: tab.id });
+    }
+  } catch (error) {
+    console.error('Side panel toggle error:', error);
+  }
 });
 
-// Close side panel when tab is closed
+// Clean up when tabs are closed
 chrome.tabs.onRemoved.addListener((tabId) => {
-  sidePanelTabs.delete(tabId);
+  activeTabs.delete(tabId);
 });
 
-// Close side panel when switching tabs
+// When switching tabs, ensure side panel state is correct
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
-  // Only keep side panel open for tabs that explicitly opened it
-  if (!sidePanelTabs.has(activeInfo.tabId)) {
-    try {
-      // Side panel will only show for tabs where user clicked the icon
+  try {
+    // Only enable side panel for tabs that explicitly opened it
+    const shouldBeEnabled = activeTabs.has(activeInfo.tabId);
+
+    await chrome.sidePanel.setOptions({
+      tabId: activeInfo.tabId,
+      enabled: shouldBeEnabled
+    });
+
+    // If not in active tabs, explicitly close it
+    if (!shouldBeEnabled) {
       await chrome.sidePanel.setOptions({
         tabId: activeInfo.tabId,
-        enabled: sidePanelTabs.has(activeInfo.tabId)
+        enabled: false
       });
-    } catch (e) {
-      // Ignore errors if side panel isn't available
+    }
+  } catch (error) {
+    // Side panel might not be available, ignore
+    console.debug('Side panel state update:', error.message);
+  }
+});
+
+// When a tab is updated (navigation), preserve the state
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete') {
+    try {
+      // Maintain the side panel state for this tab
+      const shouldBeEnabled = activeTabs.has(tabId);
+
+      await chrome.sidePanel.setOptions({
+        tabId: tabId,
+        enabled: shouldBeEnabled
+      });
+
+      // Notify side panel that page has loaded (only if open)
+      if (shouldBeEnabled) {
+        chrome.runtime.sendMessage({
+          type: 'TAB_UPDATED',
+          tabId: tabId,
+          url: tab.url
+        }).catch(() => {
+          // Side panel might not be listening
+        });
+      }
+    } catch (error) {
+      console.debug('Tab update handling:', error.message);
     }
   }
 });
 
-// Listen for tab updates
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete') {
-    // Notify side panel that page has loaded (only if open for this tab)
-    if (sidePanelTabs.has(tabId)) {
-      chrome.runtime.sendMessage({
-        type: 'TAB_UPDATED',
-        tabId: tabId,
-        url: tab.url
-      }).catch(() => {
-        // Side panel might not be open
+// Listen for side panel being closed manually by user
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name === 'sidepanel') {
+    port.onDisconnect.addListener(() => {
+      // User closed the side panel, remove from active tabs
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]) {
+          activeTabs.delete(tabs[0].id);
+        }
       });
-    }
+    });
   }
 });
 
@@ -71,6 +124,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         });
       });
     return true; // Keep channel open for async response
+  }
+
+  if (request.type === 'SIDEPANEL_OPENED') {
+    // Side panel reports it has opened
+    if (sender.tab) {
+      activeTabs.add(sender.tab.id);
+    }
+    sendResponse({ success: true });
+    return true;
+  }
+
+  if (request.type === 'SIDEPANEL_CLOSED') {
+    // Side panel reports it's closing
+    if (sender.tab) {
+      activeTabs.delete(sender.tab.id);
+    }
+    sendResponse({ success: true });
+    return true;
   }
 });
 
