@@ -1,13 +1,17 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 
 export const IssuesDrawer = () => {
-  const { findings, selectedFinding, setSelectedFinding, selectedScript } = useApp();
+  const { findings, selectedFinding, setSelectedFinding, selectedScript, setFindings } = useApp();
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [ignoredFindings, setIgnoredFindings] = useState(new Set());
 
   const scriptFindings = useMemo(() => {
     if (!selectedScript) return [];
-    return findings.filter(f => f.scriptUrl === selectedScript.url);
-  }, [findings, selectedScript]);
+    return findings.filter(f =>
+      f.scriptUrl === selectedScript.url && !ignoredFindings.has(f.index + '-' + f.line)
+    );
+  }, [findings, selectedScript, ignoredFindings]);
 
   const groupedFindings = useMemo(() => {
     const groups = { HIGH: [], MEDIUM: [], LOW: [] };
@@ -35,32 +39,73 @@ export const IssuesDrawer = () => {
     }
   };
 
+  const handleIgnoreFinding = (finding) => {
+    const key = finding.index + '-' + finding.line;
+    setIgnoredFindings(prev => new Set([...prev, key]));
+
+    // Remove from findings list
+    setFindings(prev => prev.filter(f =>
+      !(f.scriptUrl === finding.scriptUrl && f.line === finding.line && f.index === finding.index)
+    ));
+  };
+
   if (!selectedScript) {
     return (
-      <div className="h-64 bg-gray-800 border-t border-gray-700 flex items-center justify-center text-gray-400 text-sm">
+      <div className="h-16 bg-gray-800 border-t border-gray-700 flex items-center justify-center text-gray-400 text-sm">
         Select a script to view security findings
       </div>
     );
   }
 
-  if (scriptFindings.length === 0) {
+  if (isMinimized) {
     return (
-      <div className="h-64 bg-gray-800 border-t border-gray-700 flex items-center justify-center text-gray-400 text-sm">
-        <div className="text-center">
-          <div className="text-3xl mb-2">✅</div>
-          <p className="font-medium text-green-400">No security issues detected</p>
-          <p className="text-xs mt-1">This script appears to be clean</p>
+      <div className="bg-gray-800 border-t border-gray-700 flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-gray-750"
+        onClick={() => setIsMinimized(false)}
+      >
+        <div className="flex items-center space-x-3">
+          <button className="text-blue-400 hover:text-blue-300">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            </svg>
+          </button>
+          <h3 className="text-sm font-bold text-white">
+            Security Findings ({scriptFindings.length})
+          </h3>
+          {scriptFindings.length > 0 && (
+            <div className="flex items-center space-x-2 text-xs">
+              <span className="text-red-400">
+                {getRiskIcon('HIGH')} {groupedFindings.HIGH.length}
+              </span>
+              <span className="text-orange-400">
+                {getRiskIcon('MEDIUM')} {groupedFindings.MEDIUM.length}
+              </span>
+              <span className="text-yellow-400">
+                {getRiskIcon('LOW')} {groupedFindings.LOW.length}
+              </span>
+            </div>
+          )}
         </div>
+        <span className="text-xs text-gray-400">Click to expand</span>
       </div>
     );
   }
 
   return (
-    <div className="h-80 bg-gray-800 border-t border-gray-700 flex flex-col">
-      <div className="px-4 py-2 bg-gray-900 border-b border-gray-700 flex items-center justify-between">
-        <h3 className="text-sm font-bold text-white">
-          Security Findings ({scriptFindings.length})
-        </h3>
+    <div className="bg-gray-800 border-t border-gray-700 flex flex-col" style={{ height: '320px' }}>
+      <div className="px-4 py-2 bg-gray-900 border-b border-gray-700 flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setIsMinimized(true)}
+            className="text-blue-400 hover:text-blue-300"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <h3 className="text-sm font-bold text-white">
+            Security Findings ({scriptFindings.length})
+          </h3>
+        </div>
         <div className="flex items-center space-x-3 text-xs">
           <span className="text-red-400">
             {getRiskIcon('HIGH')} {groupedFindings.HIGH.length} High
@@ -75,44 +120,65 @@ export const IssuesDrawer = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {['HIGH', 'MEDIUM', 'LOW'].map(risk => (
-          groupedFindings[risk].length > 0 && (
-            <div key={risk} className="border-b border-gray-700">
-              <div className="px-4 py-2 bg-gray-850 text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center">
-                <span className="mr-2">{getRiskIcon(risk)}</span>
-                {risk} Risk ({groupedFindings[risk].length})
-              </div>
-              {groupedFindings[risk].map((finding, idx) => (
-                <div
-                  key={`${finding.line}-${finding.column}-${idx}`}
-                  onClick={() => setSelectedFinding(finding)}
-                  className={`px-4 py-3 cursor-pointer border-l-4 transition-all ${
-                    selectedFinding === finding
-                      ? `${getRiskColor(risk)} bg-gray-700`
-                      : 'border-transparent hover:bg-gray-750'
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-1">
-                    <span className="text-sm font-medium text-white">
-                      {finding.type}
-                    </span>
-                    <span className="text-xs text-gray-400 font-mono">
-                      Line {finding.line}:{finding.column}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-300 mb-2">
-                    {finding.description}
-                  </p>
-                  <div className="bg-gray-900 rounded p-2 overflow-x-auto">
-                    <code className="text-xs text-gray-200 font-mono">
-                      {finding.matchText}
-                    </code>
-                  </div>
-                </div>
-              ))}
+        {scriptFindings.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+            <div className="text-center">
+              <div className="text-3xl mb-2">✅</div>
+              <p className="font-medium text-green-400">No security issues detected</p>
+              <p className="text-xs mt-1">This script appears to be clean</p>
             </div>
-          )
-        ))}
+          </div>
+        ) : (
+          ['HIGH', 'MEDIUM', 'LOW'].map(risk => (
+            groupedFindings[risk].length > 0 && (
+              <div key={risk} className="border-b border-gray-700">
+                <div className="px-4 py-2 bg-gray-850 text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center">
+                  <span className="mr-2">{getRiskIcon(risk)}</span>
+                  {risk} Risk ({groupedFindings[risk].length})
+                </div>
+                {groupedFindings[risk].map((finding, idx) => (
+                  <div
+                    key={`${finding.line}-${finding.column}-${idx}`}
+                    className={`px-4 py-3 border-l-4 transition-all ${
+                      selectedFinding === finding
+                        ? `${getRiskColor(risk)} bg-gray-700`
+                        : 'border-transparent hover:bg-gray-750'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-1">
+                      <div
+                        className="flex-1 cursor-pointer"
+                        onClick={() => setSelectedFinding(finding)}
+                      >
+                        <span className="text-sm font-medium text-white">
+                          {finding.type}
+                        </span>
+                        <span className="ml-2 text-xs text-gray-400 font-mono">
+                          Line {finding.line}:{finding.column}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleIgnoreFinding(finding)}
+                        className="ml-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition-colors"
+                        title="Ignore this finding"
+                      >
+                        Ignore
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-300 mb-2">
+                      {finding.description}
+                    </p>
+                    <div className="bg-gray-900 rounded p-2 overflow-x-auto">
+                      <code className="text-xs text-gray-200 font-mono">
+                        {finding.matchText}
+                      </code>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          ))
+        )}
       </div>
     </div>
   );
