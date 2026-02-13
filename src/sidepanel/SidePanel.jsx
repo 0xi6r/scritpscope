@@ -7,8 +7,8 @@ import { IssuesDrawer } from './components/IssuesDrawer';
 import { useScriptDiscovery } from './hooks/useScriptDiscovery';
 
 const SidePanelContent = () => {
-  const { setScripts, setIsLoading, setSelectedScript } = useApp();
-  const { scripts, isLoading, error, discoverScripts } = useScriptDiscovery();
+  const { setScripts, setIsLoading, setSelectedScript, scripts } = useApp();
+  const { isLoading, error, discoverScripts } = useScriptDiscovery();
 
   const [sidebarWidth, setSidebarWidth] = useState(320);
   const [drawerHeight, setDrawerHeight] = useState(48);
@@ -19,19 +19,27 @@ const SidePanelContent = () => {
 
   const containerRef = useRef(null);
 
-  useEffect(() => {
-    setScripts(scripts);
-    if (scripts.length > 0 && !error) {
-      setSelectedScript(scripts[0]);
-    }
-  }, [scripts, error]);
-
-  useEffect(() => {
-    setIsLoading(isLoading);
-  }, [isLoading]);
-
   const handleScan = async () => {
-    await discoverScripts();
+    const discoveredScripts = await discoverScripts();
+    if (discoveredScripts.length > 0) {
+      setSelectedScript(discoveredScripts[0]);
+    }
+  };
+
+  const handleImport = async (importedScripts) => {
+    console.log('Importing scripts:', importedScripts);
+
+    // Merge imported scripts with existing ones
+    setScripts(prev => [...prev, ...importedScripts]);
+
+    // Select first imported script
+    if (importedScripts.length > 0) {
+      setSelectedScript(importedScripts[0]);
+    }
+
+    // Auto-scan imported scripts
+    // The CodeViewer will automatically scan when a script is selected
+    console.log(`Imported ${importedScripts.length} scripts. Auto-scanning...`);
   };
 
   const handleScanComplete = (findings) => {
@@ -100,7 +108,7 @@ const SidePanelContent = () => {
 
   return (
     <div className="h-screen flex flex-col bg-black text-white overflow-hidden">
-      <TopBar onScan={handleScan} />
+      <TopBar onScan={handleScan} onImport={handleImport} />
 
       {error && (
         <div className="bg-red-900 border-b border-red-700 px-4 py-2 text-sm text-red-200 flex-shrink-0">
