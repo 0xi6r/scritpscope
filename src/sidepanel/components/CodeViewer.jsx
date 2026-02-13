@@ -8,7 +8,7 @@ import * as prettier from 'prettier/standalone';
 import * as prettierBabel from 'prettier/plugins/babel';
 import * as prettierEstree from 'prettier/plugins/estree';
 
-export const CodeViewer = ({ onScanComplete }) => {
+export const CodeViewer = ({ onScanComplete, onToggleSidebar }) => {
   const { selectedScript, setFindings, selectedFinding } = useApp();
   const editorRef = useRef(null);
   const viewRef = useRef(null);
