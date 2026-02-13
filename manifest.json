@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ScriptScope",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Capture, prettify, and analyze JavaScript files for security vulnerabilities and secrets",
   "permissions": [
     "sidePanel",
@@ -16,6 +16,9 @@
   "background": {
     "service_worker": "src/background/index.js",
     "type": "module"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
   },
   "action": {
     "default_title": "Toggle ScriptScope"
