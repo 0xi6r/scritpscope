@@ -2,14 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { EditorView, basicSetup } from 'codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { EditorState, Compartment } from '@codemirror/state';
+import { EditorState } from '@codemirror/state';
 import { useApp } from '../../context/AppContext';
 import * as prettier from 'prettier/standalone';
 import * as prettierBabel from 'prettier/plugins/babel';
 import * as prettierEstree from 'prettier/plugins/estree';
 
 export const CodeViewer = ({ onScanComplete }) => {
-  const { selectedScript, setFindings, selectedFinding, setSelectedFinding } = useApp();
+  const { selectedScript, setFindings, selectedFinding } = useApp();
   const editorRef = useRef(null);
   const viewRef = useRef(null);
   const [isPrettifying, setIsPrettifying] = useState(false);
@@ -25,7 +25,7 @@ export const CodeViewer = ({ onScanComplete }) => {
     );
 
     scanWorker.onmessage = (event) => {
-      const { type, findings, id } = event.data;
+      const { type, findings } = event.data;
 
       if (type === 'SCAN_COMPLETE') {
         const findingsWithScript = findings.map(f => ({
@@ -50,7 +50,13 @@ export const CodeViewer = ({ onScanComplete }) => {
 
   // Initialize CodeMirror
   useEffect(() => {
-    if (!editorRef.current || viewRef.current) return;
+    if (!editorRef.current) return;
+
+    // Clean up existing view
+    if (viewRef.current) {
+      viewRef.current.destroy();
+      viewRef.current = null;
+    }
 
     const state = EditorState.create({
       doc: code,
@@ -59,7 +65,21 @@ export const CodeViewer = ({ onScanComplete }) => {
         javascript(),
         oneDark,
         EditorView.editable.of(false),
-        EditorView.lineWrapping
+        EditorView.lineWrapping,
+        // Ensure scrolling is enabled
+        EditorView.theme({
+          "&": {
+            height: "100%",
+            overflow: "hidden"
+          },
+          ".cm-scroller": {
+            overflow: "auto",
+            height: "100%"
+          },
+          ".cm-content": {
+            padding: "10px 0"
+          }
+        })
       ]
     });
 
@@ -71,10 +91,12 @@ export const CodeViewer = ({ onScanComplete }) => {
     viewRef.current = view;
 
     return () => {
-      view.destroy();
-      viewRef.current = null;
+      if (viewRef.current) {
+        viewRef.current.destroy();
+        viewRef.current = null;
+      }
     };
-  }, []);
+  }, [editorRef.current]);
 
   // Update code when script changes
   useEffect(() => {
@@ -128,19 +150,31 @@ export const CodeViewer = ({ onScanComplete }) => {
   useEffect(() => {
     if (selectedFinding && viewRef.current) {
       const view = viewRef.current;
-      const line = view.state.doc.line(selectedFinding.line);
+      try {
+        const line = view.state.doc.line(selectedFinding.line);
 
-      view.dispatch({
-        selection: { anchor: line.from },
-        effects: EditorView.scrollIntoView(line.from, { y: 'center' })
-      });
+        view.dispatch({
+          selection: { anchor: line.from },
+          effects: EditorView.scrollIntoView(line.from, { y: 'center' })
+        });
+      } catch (error) {
+        console.error('Error scrolling to line:', error);
+      }
     }
   }, [selectedFinding]);
 
   const handlePrettify = async () => {
-    if (!selectedScript?.content || selectedScript.content.length > 1024 * 1024) {
-      alert('File is too large to prettify (>1MB). This may cause browser slowdown.');
+    if (!selectedScript?.content) {
+      alert('No content to prettify');
       return;
+    }
+
+    const fileSizeMB = selectedScript.size / (1024 * 1024);
+    if (fileSizeMB > 1) {
+      const confirmed = confirm(
+        `This file is ${fileSizeMB.toFixed(2)} MB. Prettifying large files may cause slowdown. Continue?`
+      );
+      if (!confirmed) return;
     }
 
     setIsPrettifying(true);
@@ -177,9 +211,9 @@ export const CodeViewer = ({ onScanComplete }) => {
   const showWarning = fileSizeMB > 1;
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-900">
+    <div className="flex-1 flex flex-col bg-gray-900 overflow-hidden">
       {/* Toolbar */}
-      <div className="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center justify-between">
+      <div className="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center space-x-4">
           <span className="text-sm text-gray-300">
             {selectedScript ? (
@@ -230,8 +264,12 @@ export const CodeViewer = ({ onScanComplete }) => {
         </div>
       </div>
 
-      {/* Editor */}
-      <div ref={editorRef} className="flex-1 overflow-auto" />
+      {/* Editor - This is the key fix */}
+      <div
+        ref={editorRef}
+        className="flex-1 overflow-hidden"
+        style={{ height: '100%', minHeight: 0 }}
+      />
     </div>
   );
 };
