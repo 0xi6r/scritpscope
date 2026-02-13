@@ -51,8 +51,8 @@ bun run build
 ```
 
 2. On your chrome browser tab type **Chrome://extensions** and hit ENTER
-   Enable develooper mode
-   Click on **load unpacked**
-   Go to the dist directory where the builds are at and hit ENTER
+   - Enable develooper mode
+   - Click on **load unpacked**
+   - Go to the dist directory where the builds are at and hit ENTER
 
 3. Now you can you use the extension, figure out its features by yourself
