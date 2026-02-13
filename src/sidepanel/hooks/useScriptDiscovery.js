@@ -1,11 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 
 export const useScriptDiscovery = () => {
   const [scripts, setScripts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const discoverScripts = useCallback(async () => {
+  const discoverScripts = async () => {
     setIsLoading(true);
     setError(null);
 
@@ -13,70 +13,120 @@ export const useScriptDiscovery = () => {
       // Get current tab
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-      if (!tab) {
+      if (!tab?.id) {
         throw new Error('No active tab found');
       }
 
-      // Inject content script if not already injected
-      try {
-        await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          files: ['src/content/index.js']
-        });
-      } catch (e) {
-        // Content script might already be injected
-        console.log('Content script injection:', e.message);
-      }
+      // Inject content script to discover scripts
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          const scripts = [];
+          const scriptElements = document.querySelectorAll('script');
 
-      // Request script discovery
-      const response = await chrome.tabs.sendMessage(tab.id, {
-        type: 'DISCOVER_SCRIPTS'
+          scriptElements.forEach((script, index) => {
+            if (script.src) {
+              scripts.push({
+                url: script.src,
+                type: 'external',
+                inline: false
+              });
+            } else if (script.textContent) {
+              scripts.push({
+                url: `inline-script-${index}`,
+                type: 'inline',
+                inline: true,
+                content: script.textContent,
+                size: new Blob([script.textContent]).size
+              });
+            }
+          });
+
+          // Also check performance API for dynamically loaded scripts
+          const resources = performance.getEntriesByType('resource');
+          resources.forEach(resource => {
+            if (resource.initiatorType === 'script' && resource.name.match(/\.js(\?|$)/i)) {
+              // Check if not already in list
+              if (!scripts.some(s => s.url === resource.name)) {
+                scripts.push({
+                  url: resource.name,
+                  type: 'dynamic',
+                  inline: false
+                });
+              }
+            }
+          });
+
+          return scripts;
+        }
       });
 
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to discover scripts');
-      }
+      const discoveredScripts = results[0]?.result || [];
 
-      let discoveredScripts = response.scripts || [];
+      // Fetch content for external scripts
+      const scriptsWithContent = await Promise.all(
+        discoveredScripts.map(async (script) => {
+          if (script.inline) {
+            // Inline script already has content
+            return {
+              ...script,
+              firstParty: true,
+              hasSourceMap: /\/\/[@#]\s*sourceMappingURL=/.test(script.content || '')
+            };
+          }
 
-      // Fetch content for scripts that couldn't be fetched in content script
-      for (const script of discoveredScripts) {
-        if (script.fetchError === 'CORS_ERROR' && script.type !== 'inline') {
+          // External script - fetch content
           try {
-            const fetchResponse = await chrome.runtime.sendMessage({
+            const response = await chrome.runtime.sendMessage({
               type: 'FETCH_SCRIPT',
               url: script.url
             });
 
-            if (fetchResponse.success) {
-              script.content = fetchResponse.content;
-              script.size = new Blob([fetchResponse.content]).size;
-              script.hasSourceMap = detectSourceMap(fetchResponse.content);
-              delete script.fetchError;
+            if (response.success) {
+              const currentUrl = new URL(tab.url);
+              const scriptUrl = new URL(script.url);
+              const isFirstParty = currentUrl.hostname === scriptUrl.hostname;
+
+              return {
+                ...script,
+                content: response.content,
+                size: new Blob([response.content]).size,
+                firstParty: isFirstParty,
+                hasSourceMap: /\/\/[@#]\s*sourceMappingURL=/.test(response.content)
+              };
             } else {
-              script.fetchError = 'FETCH_FAILED';
+              return {
+                ...script,
+                content: null,
+                size: 0,
+                firstParty: false,
+                fetchError: response.corsError ? 'CORS_ERROR' : 'FETCH_FAILED'
+              };
             }
-          } catch (e) {
-            script.fetchError = 'FETCH_FAILED';
+          } catch (error) {
+            return {
+              ...script,
+              content: null,
+              size: 0,
+              firstParty: false,
+              fetchError: 'FETCH_FAILED'
+            };
           }
-        }
-      }
+        })
+      );
 
-      setScripts(discoveredScripts);
-      return discoveredScripts;
+      // Filter out scripts that failed to load (optional - you can remove this if you want to show errors)
+      const successfulScripts = scriptsWithContent.filter(s => s.content !== null || s.inline);
 
-    } catch (err) {
-      setError(err.message);
-      console.error('Script discovery error:', err);
-      return [];
-    } finally {
+      setScripts(successfulScripts);
       setIsLoading(false);
+      return successfulScripts;
+    } catch (err) {
+      console.error('Script discovery error:', err);
+      setError(err.message);
+      setIsLoading(false);
+      return [];
     }
-  }, []);
-
-  const detectSourceMap = (content) => {
-    if (!content) return false;
-    return /\/\/[@#]\s*sourceMappingURL=/.test(content);
   };
 
   return {

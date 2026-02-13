@@ -7,8 +7,8 @@ import { IssuesDrawer } from './components/IssuesDrawer';
 import { useScriptDiscovery } from './hooks/useScriptDiscovery';
 
 const SidePanelContent = () => {
-  const { setScripts, setIsLoading, setSelectedScript, scripts } = useApp();
-  const { isLoading, error, discoverScripts } = useScriptDiscovery();
+  const { scripts, setScripts, setIsLoading, setSelectedScript } = useApp();
+  const { scripts: discoveredScripts, isLoading, error, discoverScripts } = useScriptDiscovery();
 
   const [sidebarWidth, setSidebarWidth] = useState(320);
   const [drawerHeight, setDrawerHeight] = useState(48);
@@ -19,27 +19,47 @@ const SidePanelContent = () => {
 
   const containerRef = useRef(null);
 
+  // Update loading state
+  useEffect(() => {
+    setIsLoading(isLoading);
+  }, [isLoading, setIsLoading]);
+
   const handleScan = async () => {
+    console.log('Starting scan...');
     const discoveredScripts = await discoverScripts();
-    if (discoveredScripts.length > 0) {
+
+    console.log('Discovered scripts:', discoveredScripts);
+
+    if (discoveredScripts && discoveredScripts.length > 0) {
+      // Set discovered scripts to global state
+      setScripts(discoveredScripts);
+
+      // Select first script
       setSelectedScript(discoveredScripts[0]);
+
+      console.log('Scripts set to global state:', discoveredScripts.length);
+    } else {
+      console.log('No scripts discovered');
+      setScripts([]);
     }
   };
 
   const handleImport = async (importedScripts) => {
-    console.log('Importing scripts:', importedScripts);
+    console.log('Importing scripts:', importedScripts.length);
 
-    // Merge imported scripts with existing ones
-    setScripts(prev => [...prev, ...importedScripts]);
+    // Merge imported scripts with existing ones (avoid duplicates)
+    setScripts(prev => {
+      const existingUrls = new Set(prev.map(s => s.url));
+      const newScripts = importedScripts.filter(s => !existingUrls.has(s.url));
+      return [...prev, ...newScripts];
+    });
 
     // Select first imported script
     if (importedScripts.length > 0) {
       setSelectedScript(importedScripts[0]);
     }
 
-    // Auto-scan imported scripts
-    // The CodeViewer will automatically scan when a script is selected
-    console.log(`Imported ${importedScripts.length} scripts. Auto-scanning...`);
+    console.log(`Imported ${importedScripts.length} new scripts`);
   };
 
   const handleScanComplete = (findings) => {
@@ -124,7 +144,9 @@ const SidePanelContent = () => {
               className="bg-dark-850 border-r border-dark-700 flex flex-col overflow-hidden flex-shrink-0"
             >
               <div className="px-3 py-2 bg-black border-b border-dark-700 flex items-center justify-between">
-                <span className="text-xs font-bold text-gray-400 uppercase">Scripts</span>
+                <span className="text-xs font-bold text-gray-400 uppercase">
+                  Scripts {scripts.length > 0 && `(${scripts.length})`}
+                </span>
                 <button
                   onClick={toggleSidebar}
                   className="text-gray-400 hover:text-white transition-colors"
