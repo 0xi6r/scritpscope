@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 
 export const FileList = () => {
-  const { scripts, selectedScript, setSelectedScript, findings } = useApp();
+  const { scripts, selectedScript, setSelectedScript, findings, ignoredFindings } = useApp();
 
   // Group scripts by domain
   const groupedByDomain = useMemo(() => {
@@ -31,7 +31,11 @@ export const FileList = () => {
   }, [scripts]);
 
   const getRiskBadge = (script) => {
-    const scriptFindings = findings.filter(f => f.scriptUrl === script.url);
+    // Filter out ignored findings
+    const scriptFindings = findings.filter(f =>
+      f.scriptUrl === script.url &&
+      !ignoredFindings.has(f.index + '-' + f.line + '-' + f.scriptUrl)
+    );
 
     if (scriptFindings.length === 0) {
       return { color: 'bg-green-500', text: 'Clean', count: 0 };

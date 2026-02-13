@@ -1,14 +1,21 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 
 export const IssuesDrawer = ({ isMinimized, onToggle }) => {
-  const { findings, selectedFinding, setSelectedFinding, selectedScript, setFindings } = useApp();
-  const [ignoredFindings, setIgnoredFindings] = useState(new Set());
+  const {
+    findings,
+    selectedFinding,
+    setSelectedFinding,
+    selectedScript,
+    setFindings,
+    ignoredFindings,
+    setIgnoredFindings
+  } = useApp();
 
   const scriptFindings = useMemo(() => {
     if (!selectedScript) return [];
     return findings.filter(f =>
-      f.scriptUrl === selectedScript.url && !ignoredFindings.has(f.index + '-' + f.line)
+      f.scriptUrl === selectedScript.url && !ignoredFindings.has(f.index + '-' + f.line + '-' + f.scriptUrl)
     );
   }, [findings, selectedScript, ignoredFindings]);
 
@@ -39,9 +46,10 @@ export const IssuesDrawer = ({ isMinimized, onToggle }) => {
   };
 
   const handleIgnoreFinding = (finding) => {
-    const key = finding.index + '-' + finding.line;
+    const key = finding.index + '-' + finding.line + '-' + finding.scriptUrl;
     setIgnoredFindings(prev => new Set([...prev, key]));
 
+    // Remove from active findings display
     setFindings(prev => prev.filter(f =>
       !(f.scriptUrl === finding.scriptUrl && f.line === finding.line && f.index === finding.index)
     ));

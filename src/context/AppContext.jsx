@@ -17,6 +17,7 @@ export const AppProvider = ({ children }) => {
   const [selectedFinding, setSelectedFinding] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [ignoredFindings, setIgnoredFindings] = useState(new Set());
 
   const value = {
     scripts,
@@ -30,7 +31,9 @@ export const AppProvider = ({ children }) => {
     isScanning,
     setIsScanning,
     isLoading,
-    setIsLoading
+    setIsLoading,
+    ignoredFindings,
+    setIgnoredFindings
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
