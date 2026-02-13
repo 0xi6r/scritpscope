@@ -1,153 +1,160 @@
 #!/bin/bash
 
-# ScriptScope - Git Commit Script
-# This script commits the entire ScriptScope Chrome Extension project
+# ScriptScope - Proper Git Commit Script (Fixed)
 
-set -e  # Exit on any error
+set -e
 
-echo "🚀 Starting Git commits for ScriptScope Chrome Extension..."
+echo "🔄 Resetting and recommitting with proper messages..."
 echo ""
 
-# Color codes for output
+# Colors
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+YELLOW='\033[1;33m'
+NC='\033[0m'
 
-# Function to commit with message
-commit_with_message() {
+# Save current branch
+CURRENT_BRANCH=$(git branch --show-current)
+
+# Ask how many commits to undo
+echo "Current commits:"
+git log --oneline -20
+echo ""
+
+read -p "How many commits to reset? (e.g., 17): " NUM_COMMITS
+
+if [ -z "$NUM_COMMITS" ]; then
+    echo "Cancelled."
+    exit 1
+fi
+
+echo ""
+echo -e "${YELLOW}⚠️  This will reset the last $NUM_COMMITS commits but keep all files.${NC}"
+read -p "Continue? (y/n): " -n 1 -r
+echo ""
+
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Cancelled."
+    exit 0
+fi
+
+# Soft reset to keep changes
+git reset --soft HEAD~$NUM_COMMITS
+
+echo -e "${GREEN}✓ Reset complete. All files are staged.${NC}"
+echo ""
+
+# Now commit properly with correct messages
+commit_files() {
     local message="$1"
     shift
-    local files=("$@")
+    local files="$@"
 
     echo -e "${BLUE}Committing:${NC} $message"
-    git add "${files[@]}"
-    git commit -m "$message"
-    echo -e "${GREEN}✓ Committed${NC}"
-    echo ""
+    git reset HEAD .  # Unstage everything first
+    git add $files 2>/dev/null || true
+    git commit -m "$message" --quiet
+    echo -e "${GREEN}✓ Done${NC}"
 }
 
-# Initialize git if not already initialized
-if [ ! -d .git ]; then
-    echo "Initializing git repository..."
-    git init
+echo "Creating new commits with proper messages..."
+echo ""
+
+# Commit in logical order
+commit_files "feat: Initialize project with package.json and build configuration" \
+    "package.json" "vite.config.ts" "tailwind.config.js" "postcss.config.js" ".gitignore"
+
+commit_files "feat: Add Chrome Extension Manifest V3 configuration" \
+    "manifest.json"
+
+commit_files "feat: Add sidepanel HTML entry point" \
+    "sidepanel.html"
+
+commit_files "style: Add global styles with TailwindCSS configuration" \
+    "src/styles/index.css"
+
+commit_files "feat: Implement background service worker for tab management and CORS handling" \
+    "src/background/index.js"
+
+commit_files "feat: Implement content script for JavaScript discovery and extraction" \
+    "src/content/index.js"
+
+commit_files "feat: Add security scanner with regex patterns for vulnerability detection" \
+    "src/utils/scanner.js"
+
+commit_files "feat: Implement Web Worker for non-blocking security analysis" \
+    "src/utils/scanner.worker.js"
+
+commit_files "feat: Add global state management with React Context API" \
+    "src/context/AppContext.jsx"
+
+commit_files "feat: Implement useScriptDiscovery hook for script detection" \
+    "src/sidepanel/hooks/useScriptDiscovery.js"
+
+commit_files "feat: Add TopBar component with scan and export functionality" \
+    "src/sidepanel/components/TopBar.jsx"
+
+commit_files "feat: Add FileList component with first-party/third-party grouping" \
+    "src/sidepanel/components/FileList.jsx"
+
+commit_files "feat: Implement CodeMirror-based code viewer with prettify support" \
+    "src/sidepanel/components/CodeViewer.jsx"
+
+commit_files "feat: Add IssuesDrawer component for security findings display" \
+    "src/sidepanel/components/IssuesDrawer.jsx"
+
+commit_files "feat: Implement main SidePanel component with layout orchestration" \
+    "src/sidepanel/SidePanel.jsx"
+
+commit_files "feat: Add React application entry point" \
+    "src/sidepanel/main.jsx"
+
+commit_files "docs: Add comprehensive README with installation and usage instructions" \
+    "README.md"
+
+# Stage any remaining files
+REMAINING=$(git status --porcelain | wc -l)
+if [ $REMAINING -gt 0 ]; then
     echo ""
-fi
-
-# 1. Project Configuration Files
-commit_with_message "feat: Initialize project with package.json and build configuration" \
-    package.json \
-    vite.config.js \
-    tailwind.config.js \
-    postcss.config.js \
-    .gitignore
-
-# 2. Manifest and Extension Setup
-commit_with_message "feat: Add Chrome Extension Manifest V3 configuration" \
-    manifest.json
-
-# 3. HTML Entry Points
-commit_with_message "feat: Add sidepanel HTML entry point" \
-    sidepanel.html
-
-# 4. Global Styles
-commit_with_message "style: Add global styles with TailwindCSS configuration" \
-    src/styles/index.css
-
-# 5. Background Service Worker
-commit_with_message "feat: Implement background service worker for tab management and CORS handling" \
-    src/background/index.js
-
-# 6. Content Script
-commit_with_message "feat: Implement content script for JavaScript discovery and extraction" \
-    src/content/index.js
-
-# 7. Security Scanner Utilities
-commit_with_message "feat: Add security scanner with regex patterns for vulnerability detection" \
-    src/utils/scanner.js
-
-commit_with_message "feat: Implement Web Worker for non-blocking security analysis" \
-    src/utils/scanner.worker.js
-
-# 8. React Context
-commit_with_message "feat: Add global state management with React Context API" \
-    src/context/AppContext.jsx
-
-# 9. Custom Hooks
-commit_with_message "feat: Implement useScriptDiscovery hook for script detection" \
-    src/sidepanel/hooks/useScriptDiscovery.js
-
-# 10. UI Components - TopBar
-commit_with_message "feat: Add TopBar component with scan and export functionality" \
-    src/sidepanel/components/TopBar.jsx
-
-# 11. UI Components - FileList
-commit_with_message "feat: Add FileList component with first-party/third-party grouping" \
-    src/sidepanel/components/FileList.jsx
-
-# 12. UI Components - CodeViewer
-commit_with_message "feat: Implement CodeMirror-based code viewer with prettify support" \
-    src/sidepanel/components/CodeViewer.jsx
-
-# 13. UI Components - IssuesDrawer
-commit_with_message "feat: Add IssuesDrawer component for security findings display" \
-    src/sidepanel/components/IssuesDrawer.jsx
-
-# 14. Main SidePanel Component
-commit_with_message "feat: Implement main SidePanel component with layout orchestration" \
-    src/sidepanel/SidePanel.jsx
-
-# 15. React Entry Point
-commit_with_message "feat: Add React application entry point" \
-    src/sidepanel/main.jsx
-
-# 16. Documentation
-commit_with_message "docs: Add comprehensive README with installation and usage instructions" \
-    README.md
-
-# 17. Icons (if they exist)
-if [ -d "public/icons" ]; then
-    commit_with_message "assets: Add extension icons" \
-        public/icons/
+    echo "Remaining files to commit:"
+    git status --short
+    echo ""
+    read -p "Commit all remaining files? (y/n): " -n 1 -r
+    echo ""
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        git add .
+        git commit -m "chore: Add remaining project files"
+        echo -e "${GREEN}✓ Done${NC}"
+    fi
 fi
 
 echo ""
 echo -e "${GREEN}════════════════════════════════════════${NC}"
-echo -e "${GREEN}✓ All commits completed successfully!${NC}"
+echo -e "${GREEN}✓ All commits recreated with proper messages!${NC}"
 echo -e "${GREEN}════════════════════════════════════════${NC}"
 echo ""
 
-# Ask if user wants to push
-read -p "Do you want to push to GitHub now? (y/n): " -n 1 -r
+echo "New commit history:"
+git log --oneline -20
+echo ""
+
+# Ask about force push
+read -p "Force push to GitHub? (y/n): " -n 1 -r
 echo ""
 
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo ""
-    echo "📡 Checking for remote repository..."
+    echo "📤 Force pushing to GitHub..."
 
-    # Check if remote exists
-    if git remote | grep -q 'origin'; then
-        echo "Remote 'origin' found. Pushing to GitHub..."
-        git push -u origin main || git push -u origin master
+    if git push -u origin $CURRENT_BRANCH --force; then
         echo ""
-        echo -e "${GREEN}════════════════════════════════════════${NC}"
         echo -e "${GREEN}✓ Successfully pushed to GitHub!${NC}"
-        echo -e "${GREEN}════════════════════════════════════════${NC}"
     else
         echo ""
-        echo "⚠️  No remote repository found."
-        echo "Please add a remote repository first:"
-        echo ""
-        echo "  git remote add origin https://github.com/yourusername/scriptscope.git"
-        echo ""
-        echo "Then run:"
-        echo "  git push -u origin main"
+        echo -e "${YELLOW}Push failed. You can manually push later with:${NC}"
+        echo "  git push -u origin $CURRENT_BRANCH --force"
     fi
-else
-    echo ""
-    echo "Skipping push. You can push later with:"
-    echo "  git push -u origin main"
 fi
 
 echo ""
-echo "🎉 ScriptScope project successfully committed!"
-echo ""
+echo "🎉 Done!"
