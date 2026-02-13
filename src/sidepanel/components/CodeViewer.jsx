@@ -32,7 +32,11 @@ export const CodeViewer = ({ onScanComplete }) => {
           ...f,
           scriptUrl: selectedScript?.url
         }));
-        setFindings(findingsWithScript);
+        setFindings(prev => {
+          // Merge with existing findings from other scripts
+          const otherFindings = prev.filter(f => f.scriptUrl !== selectedScript?.url);
+          return [...otherFindings, ...findingsWithScript];
+        });
         setIsScanning(false);
         onScanComplete?.(findingsWithScript);
       } else if (type === 'SCAN_ERROR') {
@@ -48,11 +52,11 @@ export const CodeViewer = ({ onScanComplete }) => {
     };
   }, [selectedScript]);
 
-  // Initialize CodeMirror
+  // Initialize/Update CodeMirror with proper scrolling
   useEffect(() => {
     if (!editorRef.current) return;
 
-    // Clean up existing view
+    // Destroy existing view
     if (viewRef.current) {
       viewRef.current.destroy();
       viewRef.current = null;
@@ -66,18 +70,16 @@ export const CodeViewer = ({ onScanComplete }) => {
         oneDark,
         EditorView.editable.of(false),
         EditorView.lineWrapping,
-        // Ensure scrolling is enabled
+        // Force scrolling
         EditorView.theme({
           "&": {
             height: "100%",
-            overflow: "hidden"
+            width: "100%"
           },
           ".cm-scroller": {
             overflow: "auto",
-            height: "100%"
-          },
-          ".cm-content": {
-            padding: "10px 0"
+            overflowY: "scroll",
+            overflowX: "auto"
           }
         })
       ]
@@ -96,39 +98,32 @@ export const CodeViewer = ({ onScanComplete }) => {
         viewRef.current = null;
       }
     };
-  }, [editorRef.current]);
+  }, []);
 
-  // Update code when script changes
+  // Update code content
   useEffect(() => {
     if (!selectedScript) {
       setCode('// Select a script to view its content');
-      return;
-    }
-
-    if (selectedScript.fetchError) {
+    } else if (selectedScript.fetchError) {
       setCode(`// Unable to fetch script content\n// Error: ${selectedScript.fetchError}\n// URL: ${selectedScript.url}`);
-      return;
-    }
-
-    if (!selectedScript.content) {
+    } else if (!selectedScript.content) {
       setCode('// No content available');
-      return;
-    }
+    } else {
+      setCode(selectedScript.content);
 
-    setCode(selectedScript.content);
-
-    // Auto-scan when new script is loaded
-    if (worker && selectedScript.content) {
-      setIsScanning(true);
-      worker.postMessage({
-        type: 'SCAN',
-        code: selectedScript.content,
-        id: selectedScript.url
-      });
+      // Auto-scan when new script is loaded
+      if (worker && selectedScript.content) {
+        setIsScanning(true);
+        worker.postMessage({
+          type: 'SCAN',
+          code: selectedScript.content,
+          id: selectedScript.url
+        });
+      }
     }
   }, [selectedScript, worker]);
 
-  // Update editor content
+  // Update editor when code changes
   useEffect(() => {
     if (viewRef.current) {
       const view = viewRef.current;
@@ -152,7 +147,6 @@ export const CodeViewer = ({ onScanComplete }) => {
       const view = viewRef.current;
       try {
         const line = view.state.doc.line(selectedFinding.line);
-
         view.dispatch({
           selection: { anchor: line.from },
           effects: EditorView.scrollIntoView(line.from, { y: 'center' })
@@ -190,7 +184,7 @@ export const CodeViewer = ({ onScanComplete }) => {
 
       setCode(formatted);
 
-      // Re-scan the prettified code
+      // Re-scan prettified code
       if (worker) {
         setIsScanning(true);
         worker.postMessage({
@@ -211,7 +205,7 @@ export const CodeViewer = ({ onScanComplete }) => {
   const showWarning = fileSizeMB > 1;
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-900 overflow-hidden">
+    <div className="flex flex-col h-full bg-gray-900">
       {/* Toolbar */}
       <div className="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center space-x-4">
@@ -264,11 +258,15 @@ export const CodeViewer = ({ onScanComplete }) => {
         </div>
       </div>
 
-      {/* Editor - This is the key fix */}
+      {/* Editor with explicit height and overflow */}
       <div
         ref={editorRef}
-        className="flex-1 overflow-hidden"
-        style={{ height: '100%', minHeight: 0 }}
+        className="flex-1 overflow-auto"
+        style={{
+          height: '100%',
+          minHeight: 0,
+          position: 'relative'
+        }}
       />
     </div>
   );
