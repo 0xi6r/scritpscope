@@ -1,16 +1,48 @@
-# React + Vite
+# ScriptScope
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A powerful Chrome Extension for security professionals that captures, prettifies, and statically analyzes JavaScript files for vulnerabilities and secrets.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- 🔍 **Comprehensive Script Discovery**: Finds all JS files (inline, external, dynamic)
+- ✨ **Code Prettification**: De-obfuscate minified code with Prettier
+- 🔐 **Security Scanning**: Detects secrets, dangerous patterns, and info disclosure
+- 📊 **Risk Classification**: HIGH/MEDIUM/LOW risk categorization
+- 🎨 **Syntax Highlighting**: Full JavaScript syntax support via CodeMirror 6
+- 📍 **Source Map Detection**: Identifies scripts with source maps
+- 📥 **Export Reports**: Generate JSON reports of all findings
+- ⚡ **Performance Optimized**: Web Workers for non-blocking analysis
 
-## React Compiler
+## Security Patterns Detected
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### High Risk
+- AWS Access Keys & Secret Keys
+- Private Cryptographic Keys
+- Google API Keys
+- Stripe API Keys
+- Slack Tokens
+- GitHub Tokens
+- Hardcoded passwords
 
-## Expanding the ESLint configuration
+### Medium Risk
+- innerHTML/outerHTML assignments (XSS)
+- document.write usage
+- eval() usage
+- setTimeout/setInterval with strings
+- dangerouslySetInnerHTML
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Low Risk
+- IP addresses
+- Email addresses
+- TODO/FIXME comments
+- Console debug statements
+- Internal file paths
+
+## Installation
+
+### Development
+
+1. Clone the repository
+```bash
+git clone https://github.com/yourusername/scriptscope.git
+cd scriptscope
