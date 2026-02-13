@@ -35,10 +35,10 @@ export const TopBar = ({ onScan, onExport }) => {
   };
 
   return (
-    <div className="bg-gray-900 border-b border-gray-700 px-4 py-3 flex items-center justify-between">
+    <div className="bg-black border-b border-dark-700 px-4 py-3 flex items-center justify-between">
       <div className="flex items-center space-x-3">
         <h1 className="text-xl font-bold text-white flex items-center">
-          <span className="text-blue-500 mr-2">🔍</span>
+          <span className="text-white mr-2">🔍</span>
           ScriptScope
         </h1>
         <span className="text-xs text-gray-400">
@@ -50,7 +50,7 @@ export const TopBar = ({ onScan, onExport }) => {
         <button
           onClick={onScan}
           disabled={isScanning || isLoading}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium text-sm transition-colors flex items-center space-x-2"
+          className="px-4 py-2 bg-white hover:bg-gray-200 disabled:bg-gray-700 disabled:cursor-not-allowed text-black disabled:text-gray-500 rounded font-medium text-sm transition-colors flex items-center space-x-2"
         >
           {isScanning || isLoading ? (
             <>
@@ -83,7 +83,7 @@ export const TopBar = ({ onScan, onExport }) => {
         <button
           onClick={handleExport}
           disabled={scripts.length === 0}
-          className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed text-white rounded-lg font-medium text-sm transition-colors flex items-center space-x-2"
+          className="px-4 py-2 bg-dark-800 hover:bg-dark-700 disabled:bg-dark-900 disabled:cursor-not-allowed text-white rounded font-medium text-sm transition-colors flex items-center space-x-2"
         >
           <span>📥</span>
           <span>Export</span>

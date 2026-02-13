@@ -80,8 +80,8 @@ export const FileList = () => {
         onClick={() => setSelectedScript(script)}
         className={`p-3 cursor-pointer border-l-4 transition-all ${
           isSelected
-            ? 'bg-gray-700 border-blue-500'
-            : 'bg-gray-800 border-transparent hover:bg-gray-750 hover:border-gray-600'
+            ? 'bg-dark-700 border-white'
+            : 'bg-dark-850 border-transparent hover:bg-dark-800 hover:border-dark-600'
         }`}
       >
         <div className="flex items-start justify-between mb-2">
@@ -89,7 +89,7 @@ export const FileList = () => {
             <div className="text-sm font-medium text-white truncate">
               {getFileName(script.url)}
             </div>
-            <div className="text-xs text-gray-400 mt-1">
+            <div className="text-xs text-gray-500 mt-1">
               {formatSize(script.size)}
             </div>
           </div>
@@ -101,7 +101,7 @@ export const FileList = () => {
 
         {script.hasSourceMap && (
           <div className="mt-2">
-            <span className="text-xs bg-blue-900 text-blue-200 px-2 py-1 rounded">
+            <span className="text-xs bg-dark-700 text-white px-2 py-1 rounded border border-dark-600">
               📍 Source Map
             </span>
           </div>
@@ -134,7 +134,7 @@ export const FileList = () => {
     <div className="flex-1 overflow-y-auto">
       {Object.entries(groupedByDomain).map(([domain, domainScripts]) => (
         <div key={domain}>
-          <div className="sticky top-0 bg-gray-900 px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-700">
+          <div className="sticky top-0 bg-black px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-dark-700">
             {domain} ({domainScripts.length})
           </div>
           {domainScripts.map(script => (

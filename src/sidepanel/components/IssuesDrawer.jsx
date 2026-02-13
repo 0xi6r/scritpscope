@@ -7,7 +7,7 @@ export const IssuesDrawer = ({ isMinimized, onToggle }) => {
 
   const scriptFindings = useMemo(() => {
     if (!selectedScript) return [];
-    return findings.filter(f => 
+    return findings.filter(f =>
       f.scriptUrl === selectedScript.url && !ignoredFindings.has(f.index + '-' + f.line)
     );
   }, [findings, selectedScript, ignoredFindings]);
@@ -41,30 +41,28 @@ export const IssuesDrawer = ({ isMinimized, onToggle }) => {
   const handleIgnoreFinding = (finding) => {
     const key = finding.index + '-' + finding.line;
     setIgnoredFindings(prev => new Set([...prev, key]));
-    
-    // Remove from findings list
-    setFindings(prev => prev.filter(f => 
+
+    setFindings(prev => prev.filter(f =>
       !(f.scriptUrl === finding.scriptUrl && f.line === finding.line && f.index === finding.index)
     ));
   };
 
   if (!selectedScript) {
     return (
-      <div className="h-full bg-gray-800 border-t border-gray-700 flex items-center justify-center text-gray-400 text-xs">
+      <div className="h-full bg-dark-900 border-t border-dark-700 flex items-center justify-center text-gray-400 text-xs">
         Select a script to view security findings
       </div>
     );
   }
 
-  // Minimized view - always at bottom
   if (isMinimized) {
     return (
-      <div 
-        className="h-full bg-gray-800 border-t-2 border-gray-700 flex items-center justify-between px-4 cursor-pointer hover:bg-gray-750 transition-colors"
+      <div
+        className="h-full bg-dark-900 border-t-2 border-dark-700 flex items-center justify-between px-4 cursor-pointer hover:bg-dark-850 transition-colors"
         onClick={() => onToggle(false)}
       >
         <div className="flex items-center space-x-3">
-          <button className="text-blue-400 hover:text-blue-300 transition-colors">
+          <button className="text-white hover:text-gray-300 transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
             </svg>
@@ -105,14 +103,13 @@ export const IssuesDrawer = ({ isMinimized, onToggle }) => {
     );
   }
 
-  // Expanded view
   return (
-    <div className="h-full bg-gray-800 border-t-2 border-gray-700 flex flex-col">
-      <div className="px-4 py-2 bg-gray-900 border-b border-gray-700 flex items-center justify-between flex-shrink-0">
+    <div className="h-full bg-dark-900 border-t-2 border-dark-700 flex flex-col">
+      <div className="px-4 py-2 bg-black border-b border-dark-700 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center space-x-3">
-          <button 
+          <button
             onClick={() => onToggle(true)}
-            className="text-blue-400 hover:text-blue-300 transition-colors"
+            className="text-white hover:text-gray-300 transition-colors"
             title="Minimize"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,7 +133,7 @@ export const IssuesDrawer = ({ isMinimized, onToggle }) => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto bg-dark-900">
         {scriptFindings.length === 0 ? (
           <div className="flex items-center justify-center h-full text-gray-400 text-sm">
             <div className="text-center p-8">
@@ -148,8 +145,8 @@ export const IssuesDrawer = ({ isMinimized, onToggle }) => {
         ) : (
           ['HIGH', 'MEDIUM', 'LOW'].map(risk => (
             groupedFindings[risk].length > 0 && (
-              <div key={risk} className="border-b border-gray-700">
-                <div className="px-4 py-2 bg-gray-850 text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center sticky top-0">
+              <div key={risk} className="border-b border-dark-700">
+                <div className="px-4 py-2 bg-dark-850 text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center sticky top-0">
                   <span className="mr-2">{getRiskIcon(risk)}</span>
                   {risk} Risk ({groupedFindings[risk].length})
                 </div>
@@ -158,12 +155,12 @@ export const IssuesDrawer = ({ isMinimized, onToggle }) => {
                     key={`${finding.line}-${finding.column}-${idx}`}
                     className={`px-4 py-3 border-l-4 transition-all ${
                       selectedFinding === finding
-                        ? `${getRiskColor(risk)} bg-gray-700`
-                        : 'border-transparent hover:bg-gray-750'
+                        ? `${getRiskColor(risk)} bg-dark-800`
+                        : 'border-transparent hover:bg-dark-850'
                     }`}
                   >
                     <div className="flex items-start justify-between mb-1">
-                      <div 
+                      <div
                         className="flex-1 cursor-pointer"
                         onClick={() => setSelectedFinding(finding)}
                       >
@@ -179,7 +176,7 @@ export const IssuesDrawer = ({ isMinimized, onToggle }) => {
                           e.stopPropagation();
                           handleIgnoreFinding(finding);
                         }}
-                        className="ml-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition-colors"
+                        className="ml-2 px-2 py-1 text-xs bg-dark-700 hover:bg-dark-600 text-gray-300 rounded transition-colors"
                         title="Ignore this finding"
                       >
                         Ignore
@@ -188,7 +185,7 @@ export const IssuesDrawer = ({ isMinimized, onToggle }) => {
                     <p className="text-xs text-gray-300 mb-2">
                       {finding.description}
                     </p>
-                    <div className="bg-gray-900 rounded p-2 overflow-x-auto">
+                    <div className="bg-black rounded p-2 overflow-x-auto border border-dark-700">
                       <code className="text-xs text-gray-200 font-mono">
                         {finding.matchText}
                       </code>

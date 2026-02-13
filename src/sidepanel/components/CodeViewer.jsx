@@ -33,7 +33,6 @@ export const CodeViewer = ({ onScanComplete, onToggleSidebar }) => {
           scriptUrl: selectedScript?.url
         }));
         setFindings(prev => {
-          // Merge with existing findings from other scripts
           const otherFindings = prev.filter(f => f.scriptUrl !== selectedScript?.url);
           return [...otherFindings, ...findingsWithScript];
         });
@@ -56,7 +55,6 @@ export const CodeViewer = ({ onScanComplete, onToggleSidebar }) => {
   useEffect(() => {
     if (!editorRef.current) return;
 
-    // Destroy existing view
     if (viewRef.current) {
       viewRef.current.destroy();
       viewRef.current = null;
@@ -70,7 +68,6 @@ export const CodeViewer = ({ onScanComplete, onToggleSidebar }) => {
         oneDark,
         EditorView.editable.of(false),
         EditorView.lineWrapping,
-        // Force scrolling
         EditorView.theme({
           "&": {
             height: "100%",
@@ -100,7 +97,6 @@ export const CodeViewer = ({ onScanComplete, onToggleSidebar }) => {
     };
   }, []);
 
-  // Update code content
   useEffect(() => {
     if (!selectedScript) {
       setCode('// Select a script to view its content');
@@ -111,7 +107,6 @@ export const CodeViewer = ({ onScanComplete, onToggleSidebar }) => {
     } else {
       setCode(selectedScript.content);
 
-      // Auto-scan when new script is loaded
       if (worker && selectedScript.content) {
         setIsScanning(true);
         worker.postMessage({
@@ -123,7 +118,6 @@ export const CodeViewer = ({ onScanComplete, onToggleSidebar }) => {
     }
   }, [selectedScript, worker]);
 
-  // Update editor when code changes
   useEffect(() => {
     if (viewRef.current) {
       const view = viewRef.current;
@@ -141,7 +135,6 @@ export const CodeViewer = ({ onScanComplete, onToggleSidebar }) => {
     }
   }, [code]);
 
-  // Scroll to selected finding
   useEffect(() => {
     if (selectedFinding && viewRef.current) {
       const view = viewRef.current;
@@ -184,7 +177,6 @@ export const CodeViewer = ({ onScanComplete, onToggleSidebar }) => {
 
       setCode(formatted);
 
-      // Re-scan prettified code
       if (worker) {
         setIsScanning(true);
         worker.postMessage({
@@ -205,9 +197,9 @@ export const CodeViewer = ({ onScanComplete, onToggleSidebar }) => {
   const showWarning = fileSizeMB > 1;
 
   return (
-    <div className="flex flex-col h-full bg-gray-900">
+    <div className="flex flex-col h-full bg-black">
       {/* Toolbar */}
-      <div className="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center justify-between flex-shrink-0">
+      <div className="bg-dark-900 border-b border-dark-700 px-4 py-2 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center space-x-4">
           <span className="text-sm text-gray-300">
             {selectedScript ? (
@@ -227,7 +219,7 @@ export const CodeViewer = ({ onScanComplete, onToggleSidebar }) => {
 
         <div className="flex items-center space-x-2">
           {isScanning && (
-            <span className="text-xs text-blue-400 flex items-center">
+            <span className="text-xs text-white flex items-center">
               <svg className="animate-spin h-3 w-3 mr-1" viewBox="0 0 24 24">
                 <circle
                   className="opacity-25"
@@ -251,14 +243,14 @@ export const CodeViewer = ({ onScanComplete, onToggleSidebar }) => {
           <button
             onClick={handlePrettify}
             disabled={!selectedScript?.content || isPrettifying || selectedScript?.fetchError}
-            className="px-3 py-1 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded text-sm font-medium transition-colors"
+            className="px-3 py-1 bg-white hover:bg-gray-200 disabled:bg-dark-800 disabled:cursor-not-allowed text-black disabled:text-gray-600 rounded text-sm font-medium transition-colors"
           >
             {isPrettifying ? '⏳ Prettifying...' : '✨ Prettify'}
           </button>
         </div>
       </div>
 
-      {/* Editor with explicit height and overflow */}
+      {/* Editor */}
       <div
         ref={editorRef}
         className="flex-1 overflow-auto"

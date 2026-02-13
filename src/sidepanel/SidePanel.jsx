@@ -11,8 +11,8 @@ const SidePanelContent = () => {
   const { scripts, isLoading, error, discoverScripts } = useScriptDiscovery();
 
   const [sidebarWidth, setSidebarWidth] = useState(320);
-  const [drawerHeight, setDrawerHeight] = useState(48); // Start minimized
-  const [isDrawerMinimized, setIsDrawerMinimized] = useState(true); // Track drawer state
+  const [drawerHeight, setDrawerHeight] = useState(48);
+  const [isDrawerMinimized, setIsDrawerMinimized] = useState(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isDraggingSidebar, setIsDraggingSidebar] = useState(false);
   const [isDraggingDrawer, setIsDraggingDrawer] = useState(false);
@@ -38,17 +38,15 @@ const SidePanelContent = () => {
     console.log('Scan complete:', findings.length, 'findings');
   };
 
-  // Handle drawer minimize/maximize
   const handleDrawerToggle = (minimized) => {
     setIsDrawerMinimized(minimized);
     if (minimized) {
       setDrawerHeight(48);
     } else {
-      setDrawerHeight(320); // Default expanded height
+      setDrawerHeight(320);
     }
   };
 
-  // Sidebar resize handlers
   const handleSidebarMouseDown = (e) => {
     if (isSidebarCollapsed) return;
     e.preventDefault();
@@ -65,7 +63,6 @@ const SidePanelContent = () => {
         const containerRect = containerRef.current.getBoundingClientRect();
         const newHeight = Math.max(48, Math.min(600, containerRect.bottom - e.clientY));
         setDrawerHeight(newHeight);
-        // If user resizes, consider it expanded
         if (newHeight > 48) {
           setIsDrawerMinimized(false);
         }
@@ -92,7 +89,6 @@ const SidePanelContent = () => {
     };
   }, [isDraggingSidebar, isDraggingDrawer]);
 
-  // Drawer resize handler
   const handleDrawerMouseDown = (e) => {
     e.preventDefault();
     setIsDraggingDrawer(true);
@@ -103,7 +99,7 @@ const SidePanelContent = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-900 text-white overflow-hidden">
+    <div className="h-screen flex flex-col bg-black text-white overflow-hidden">
       <TopBar onScan={handleScan} />
 
       {error && (
@@ -113,14 +109,13 @@ const SidePanelContent = () => {
       )}
 
       <div ref={containerRef} className="flex-1 flex overflow-hidden" style={{ minHeight: 0 }}>
-        {/* Left Sidebar - File List (Collapsible) */}
         {!isSidebarCollapsed && (
           <>
             <div
               style={{ width: `${sidebarWidth}px` }}
-              className="bg-gray-850 border-r border-gray-700 flex flex-col overflow-hidden flex-shrink-0"
+              className="bg-dark-850 border-r border-dark-700 flex flex-col overflow-hidden flex-shrink-0"
             >
-              <div className="px-3 py-2 bg-gray-900 border-b border-gray-700 flex items-center justify-between">
+              <div className="px-3 py-2 bg-black border-b border-dark-700 flex items-center justify-between">
                 <span className="text-xs font-bold text-gray-400 uppercase">Scripts</span>
                 <button
                   onClick={toggleSidebar}
@@ -135,7 +130,6 @@ const SidePanelContent = () => {
               <FileList />
             </div>
 
-            {/* Vertical Resize Handle */}
             <div
               className={`resize-handle resize-handle-vertical ${isDraggingSidebar ? 'dragging' : ''}`}
               onMouseDown={handleSidebarMouseDown}
@@ -143,9 +137,8 @@ const SidePanelContent = () => {
           </>
         )}
 
-        {/* Collapsed Sidebar Button */}
         {isSidebarCollapsed && (
-          <div className="w-10 bg-gray-850 border-r border-gray-700 flex flex-col items-center pt-4">
+          <div className="w-10 bg-dark-850 border-r border-dark-700 flex flex-col items-center pt-4">
             <button
               onClick={toggleSidebar}
               className="text-gray-400 hover:text-white transition-colors mb-2"
@@ -161,7 +154,6 @@ const SidePanelContent = () => {
           </div>
         )}
 
-        {/* Main Area - Code Viewer & Issues */}
         <div className="flex-1 flex flex-col overflow-hidden" style={{ minWidth: 0 }}>
           <div
             className="flex-1 overflow-hidden"
@@ -170,7 +162,6 @@ const SidePanelContent = () => {
             <CodeViewer onScanComplete={handleScanComplete} />
           </div>
 
-          {/* Horizontal Resize Handle (only when drawer is expanded) */}
           {!isDrawerMinimized && (
             <div
               className={`resize-handle resize-handle-horizontal ${isDraggingDrawer ? 'dragging' : ''}`}
