@@ -126,30 +126,24 @@ export const FileList = () => {
   };
 
   const handleRemoveScript = (scriptToRemove, e) => {
-    e.stopPropagation(); // Prevent selecting the script
+  e.stopPropagation(); // Prevent selecting the script
 
-    // Confirm removal
-    const fileName = getFileName(scriptToRemove.url);
-    if (!confirm(`Remove "${fileName}" from the list?\n\nThis will also remove all associated findings.`)) {
-      return;
+  // Remove script from list
+  setScripts(prev => prev.filter(s => s.url !== scriptToRemove.url));
+
+  // Remove associated findings
+  setFindings(prev => prev.filter(f => f.scriptUrl !== scriptToRemove.url));
+
+  // If this was the selected script, clear selection or select another
+  if (selectedScript?.url === scriptToRemove.url) {
+    const remainingScripts = scripts.filter(s => s.url !== scriptToRemove.url);
+    if (remainingScripts.length > 0) {
+      setSelectedScript(remainingScripts[0]);
+    } else {
+      setSelectedScript(null);
     }
-
-    // Remove script from list
-    setScripts(prev => prev.filter(s => s.url !== scriptToRemove.url));
-
-    // Remove associated findings
-    setFindings(prev => prev.filter(f => f.scriptUrl !== scriptToRemove.url));
-
-    // If this was the selected script, clear selection or select another
-    if (selectedScript?.url === scriptToRemove.url) {
-      const remainingScripts = scripts.filter(s => s.url !== scriptToRemove.url);
-      if (remainingScripts.length > 0) {
-        setSelectedScript(remainingScripts[0]);
-      } else {
-        setSelectedScript(null);
-      }
-    }
-  };
+  }
+};
 
   const ScriptItem = ({ script }) => {
     const badge = getRiskBadge(script);
