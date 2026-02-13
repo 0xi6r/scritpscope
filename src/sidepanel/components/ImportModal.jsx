@@ -74,9 +74,11 @@ export const ImportModal = ({ isOpen, onClose, onImport }) => {
     });
 
     const scripts = [];
+    const failedUrls = [];
 
     for (let i = 0; i < urls.length; i++) {
       const url = urls[i];
+      let success = false;
 
       try {
         const response = await fetch(url, {
@@ -94,6 +96,7 @@ export const ImportModal = ({ isOpen, onClose, onImport }) => {
             firstParty: false,
             hasSourceMap: /\/\/[@#]\s*sourceMappingURL=/.test(content)
           });
+          success = true;
 
           setProcessingStatus(prev => ({
             ...prev,
@@ -102,20 +105,7 @@ export const ImportModal = ({ isOpen, onClose, onImport }) => {
             scripts: [...scripts]
           }));
         } else {
-          scripts.push({
-            url: url,
-            type: 'imported-url',
-            content: null,
-            size: 0,
-            firstParty: false,
-            fetchError: `HTTP ${response.status}`
-          });
-
-          setProcessingStatus(prev => ({
-            ...prev,
-            processed: i + 1,
-            failed: prev.failed + 1
-          }));
+          failedUrls.push({ url, error: `HTTP ${response.status}` });
         }
       } catch (error) {
         // Try fetching through background script
@@ -134,6 +124,7 @@ export const ImportModal = ({ isOpen, onClose, onImport }) => {
               firstParty: false,
               hasSourceMap: /\/\/[@#]\s*sourceMappingURL=/.test(bgResponse.content)
             });
+            success = true;
 
             setProcessingStatus(prev => ({
               ...prev,
@@ -142,42 +133,32 @@ export const ImportModal = ({ isOpen, onClose, onImport }) => {
               scripts: [...scripts]
             }));
           } else {
-            scripts.push({
-              url: url,
-              type: 'imported-url',
-              content: null,
-              size: 0,
-              firstParty: false,
-              fetchError: 'FETCH_FAILED'
-            });
-
-            setProcessingStatus(prev => ({
-              ...prev,
-              processed: i + 1,
-              failed: prev.failed + 1
-            }));
+            failedUrls.push({ url, error: 'Fetch failed' });
           }
         } catch (bgError) {
-          scripts.push({
-            url: url,
-            type: 'imported-url',
-            content: null,
-            size: 0,
-            firstParty: false,
-            fetchError: 'FETCH_FAILED'
-          });
-
-          setProcessingStatus(prev => ({
-            ...prev,
-            processed: i + 1,
-            failed: prev.failed + 1
-          }));
+          failedUrls.push({ url, error: 'Fetch failed' });
         }
+      }
+
+      if (!success) {
+        setProcessingStatus(prev => ({
+          ...prev,
+          processed: i + 1,
+          failed: prev.failed + 1
+        }));
       }
     }
 
     setIsProcessing(false);
     setProcessingStatus(null);
+
+    // Show summary with failed URLs
+    if (failedUrls.length > 0) {
+      const failedList = failedUrls.map(f => `  • ${f.url}\n    ${f.error}`).join('\n');
+      alert(`Import complete!\n\n✅ Successfully imported: ${scripts.length}\n❌ Failed to fetch: ${failedUrls.length}\n\nFailed URLs:\n${failedList}`);
+    }
+
+    // Only import successful scripts
     onImport(scripts);
     setUrlInput('');
     onClose();
@@ -221,9 +202,11 @@ export const ImportModal = ({ isOpen, onClose, onImport }) => {
       });
 
       const scripts = [];
+      const failedUrls = [];
 
       for (let i = 0; i < jsUrls.length; i++) {
         const url = jsUrls[i];
+        let success = false;
 
         try {
           const response = await fetch(url, {
@@ -241,6 +224,7 @@ export const ImportModal = ({ isOpen, onClose, onImport }) => {
               firstParty: false,
               hasSourceMap: /\/\/[@#]\s*sourceMappingURL=/.test(scriptContent)
             });
+            success = true;
 
             setProcessingStatus(prev => ({
               ...prev,
@@ -249,20 +233,7 @@ export const ImportModal = ({ isOpen, onClose, onImport }) => {
               scripts: [...scripts]
             }));
           } else {
-            scripts.push({
-              url: url,
-              type: 'imported-url',
-              content: null,
-              size: 0,
-              firstParty: false,
-              fetchError: `HTTP ${response.status}`
-            });
-
-            setProcessingStatus(prev => ({
-              ...prev,
-              processed: i + 1,
-              failed: prev.failed + 1
-            }));
+            failedUrls.push({ url, error: `HTTP ${response.status}` });
           }
         } catch (error) {
           // Try background fetch
@@ -281,6 +252,7 @@ export const ImportModal = ({ isOpen, onClose, onImport }) => {
                 firstParty: false,
                 hasSourceMap: /\/\/[@#]\s*sourceMappingURL=/.test(bgResponse.content)
               });
+              success = true;
 
               setProcessingStatus(prev => ({
                 ...prev,
@@ -289,48 +261,48 @@ export const ImportModal = ({ isOpen, onClose, onImport }) => {
                 scripts: [...scripts]
               }));
             } else {
-              scripts.push({
-                url: url,
-                type: 'imported-url',
-                content: null,
-                size: 0,
-                firstParty: false,
-                fetchError: 'FETCH_FAILED'
-              });
-
-              setProcessingStatus(prev => ({
-                ...prev,
-                processed: i + 1,
-                failed: prev.failed + 1
-              }));
+              failedUrls.push({ url, error: 'Fetch failed' });
             }
           } catch {
-            scripts.push({
-              url: url,
-              type: 'imported-url',
-              content: null,
-              size: 0,
-              firstParty: false,
-              fetchError: 'FETCH_FAILED'
-            });
-
-            setProcessingStatus(prev => ({
-              ...prev,
-              processed: i + 1,
-              failed: prev.failed + 1
-            }));
+            failedUrls.push({ url, error: 'Fetch failed' });
           }
+        }
+
+        if (!success) {
+          setProcessingStatus(prev => ({
+            ...prev,
+            processed: i + 1,
+            failed: prev.failed + 1
+          }));
         }
       }
 
       setIsProcessing(false);
+      setProcessingStatus(null);
 
-      // Show summary if there were ignored URLs
-      if (ignoredLines.length > 0) {
-        alert(`Import complete!\n\n✅ Imported: ${scripts.filter(s => s.content).length} JavaScript files\n❌ Failed: ${scripts.filter(s => !s.content).length}\n⚠️ Ignored: ${ignoredLines.length} non-JavaScript URLs`);
+      // Show detailed summary
+      let message = `Import complete!\n\n✅ Successfully imported: ${scripts.length} JavaScript files`;
+
+      if (failedUrls.length > 0) {
+        message += `\n❌ Failed to fetch: ${failedUrls.length}`;
       }
 
-      setProcessingStatus(null);
+      if (ignoredLines.length > 0) {
+        message += `\n⚠️ Ignored: ${ignoredLines.length} non-JavaScript URLs`;
+      }
+
+      if (failedUrls.length > 0) {
+        const failedList = failedUrls.slice(0, 10).map(f => `  • ${f.url}\n    ${f.error}`).join('\n');
+        message += `\n\nFailed URLs (showing first 10):\n${failedList}`;
+
+        if (failedUrls.length > 10) {
+          message += `\n... and ${failedUrls.length - 10} more`;
+        }
+      }
+
+      alert(message);
+
+      // Only import successful scripts
       onImport(scripts);
       onClose();
     } catch (error) {
@@ -441,10 +413,10 @@ export const ImportModal = ({ isOpen, onClose, onImport }) => {
             <div className="space-y-4">
               <div className="bg-dark-850 border border-dark-700 rounded p-3">
                 <p className="text-sm text-gray-400 mb-2">
-                  ℹ️ Only URLs ending in .js, .jsx, .ts, .tsx, .mjs, .cjs will be imported
+                  ℹ️ Only successfully fetched JavaScript files will be added
                 </p>
                 <p className="text-xs text-gray-500">
-                  Other URLs will be automatically ignored
+                  Failed URLs (404, CORS errors, etc.) will be reported but not added to the list
                 </p>
               </div>
               <textarea
@@ -488,10 +460,10 @@ export const ImportModal = ({ isOpen, onClose, onImport }) => {
             <div className="space-y-4">
               <div className="bg-dark-850 border border-dark-700 rounded p-3">
                 <p className="text-sm text-gray-400 mb-2">
-                  ℹ️ Only JavaScript file URLs will be processed
+                  ℹ️ Only successfully fetched JavaScript files will be added
                 </p>
                 <p className="text-xs text-gray-500">
-                  Lines not matching .js/.jsx/.ts/.tsx/.mjs/.cjs will be ignored
+                  Failed URLs and non-JS files will be reported but not added
                 </p>
               </div>
               <div
@@ -518,7 +490,7 @@ https://cdn.example.com/bundle.min.js
 https://unpkg.com/react@18.2.0/umd/react.production.min.js
 # Comments are ignored
 https://example.com/styles.css  ← Will be ignored
-https://example.com/app.jsx  ← Will be imported`}
+https://example.com/404.js  ← Will be ignored if 404`}
                 </pre>
               </div>
               {processingStatus && (
