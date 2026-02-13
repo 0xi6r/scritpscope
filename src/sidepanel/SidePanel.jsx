@@ -12,6 +12,7 @@ const SidePanelContent = () => {
 
   const [sidebarWidth, setSidebarWidth] = useState(320);
   const [drawerHeight, setDrawerHeight] = useState(48); // Start minimized
+  const [isDrawerMinimized, setIsDrawerMinimized] = useState(true); // Track drawer state
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isDraggingSidebar, setIsDraggingSidebar] = useState(false);
   const [isDraggingDrawer, setIsDraggingDrawer] = useState(false);
@@ -37,6 +38,16 @@ const SidePanelContent = () => {
     console.log('Scan complete:', findings.length, 'findings');
   };
 
+  // Handle drawer minimize/maximize
+  const handleDrawerToggle = (minimized) => {
+    setIsDrawerMinimized(minimized);
+    if (minimized) {
+      setDrawerHeight(48);
+    } else {
+      setDrawerHeight(320); // Default expanded height
+    }
+  };
+
   // Sidebar resize handlers
   const handleSidebarMouseDown = (e) => {
     if (isSidebarCollapsed) return;
@@ -54,6 +65,10 @@ const SidePanelContent = () => {
         const containerRect = containerRef.current.getBoundingClientRect();
         const newHeight = Math.max(48, Math.min(600, containerRect.bottom - e.clientY));
         setDrawerHeight(newHeight);
+        // If user resizes, consider it expanded
+        if (newHeight > 48) {
+          setIsDrawerMinimized(false);
+        }
       }
     };
 
@@ -156,7 +171,7 @@ const SidePanelContent = () => {
           </div>
 
           {/* Horizontal Resize Handle (only when drawer is expanded) */}
-          {drawerHeight > 48 && (
+          {!isDrawerMinimized && (
             <div
               className={`resize-handle resize-handle-horizontal ${isDraggingDrawer ? 'dragging' : ''}`}
               onMouseDown={handleDrawerMouseDown}
@@ -164,7 +179,10 @@ const SidePanelContent = () => {
           )}
 
           <div style={{ height: `${drawerHeight}px` }} className="flex-shrink-0 overflow-hidden">
-            <IssuesDrawer />
+            <IssuesDrawer
+              isMinimized={isDrawerMinimized}
+              onToggle={handleDrawerToggle}
+            />
           </div>
         </div>
       </div>
