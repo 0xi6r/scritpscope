@@ -10,8 +10,19 @@ export const FileList = () => {
 
     scripts.forEach(script => {
       let domain;
+
+      // Handle different script types
       if (script.url.startsWith('inline-script')) {
         domain = '📄 Inline Scripts';
+      } else if (script.url.startsWith('imported-')) {
+        domain = '📁 Imported Files';
+      } else if (script.type === 'imported-url') {
+        try {
+          const url = new URL(script.url);
+          domain = `🔗 ${url.hostname}`;
+        } catch {
+          domain = '🔗 Imported URLs';
+        }
       } else {
         try {
           const url = new URL(script.url);
@@ -65,6 +76,11 @@ export const FileList = () => {
     if (url.startsWith('inline-script')) {
       return `📄 ${url}`;
     }
+    if (url.startsWith('imported-')) {
+      // Extract filename from imported- prefix
+      const fileName = url.replace('imported-', '');
+      return fileName;
+    }
     try {
       const urlObj = new URL(url);
       const pathname = urlObj.pathname;
@@ -75,8 +91,43 @@ export const FileList = () => {
     }
   };
 
+  const getScriptTypeInfo = (script) => {
+    if (script.type === 'imported' && script.fileName) {
+      return {
+        badge: '📁 Imported',
+        color: 'bg-purple-900 text-purple-200 border-purple-700'
+      };
+    }
+    if (script.type === 'imported-url') {
+      return {
+        badge: '🔗 Imported URL',
+        color: 'bg-indigo-900 text-indigo-200 border-indigo-700'
+      };
+    }
+    if (script.type === 'inline') {
+      return {
+        badge: '📝 Inline',
+        color: 'bg-blue-900 text-blue-200 border-blue-700'
+      };
+    }
+    if (script.type === 'external') {
+      return {
+        badge: '🌐 External',
+        color: 'bg-gray-800 text-gray-300 border-gray-600'
+      };
+    }
+    if (script.type === 'dynamic') {
+      return {
+        badge: '⚡ Dynamic',
+        color: 'bg-yellow-900 text-yellow-200 border-yellow-700'
+      };
+    }
+    return null;
+  };
+
   const ScriptItem = ({ script }) => {
     const badge = getRiskBadge(script);
+    const typeInfo = getScriptTypeInfo(script);
     const isSelected = selectedScript?.url === script.url;
 
     return (
@@ -90,7 +141,7 @@ export const FileList = () => {
       >
         <div className="flex items-start justify-between mb-2">
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium text-white truncate">
+            <div className="text-sm font-medium text-white truncate" title={script.url}>
               {getFileName(script.url)}
             </div>
             <div className="text-xs text-gray-500 mt-1">
@@ -103,21 +154,38 @@ export const FileList = () => {
           </div>
         </div>
 
-        {script.hasSourceMap && (
-          <div className="mt-2">
+        {/* Badges Section */}
+        <div className="flex flex-wrap gap-2 mt-2">
+          {/* Import Type Badge */}
+          {typeInfo && (
+            <span className={`text-xs px-2 py-1 rounded border ${typeInfo.color}`}>
+              {typeInfo.badge}
+            </span>
+          )}
+
+          {/* Source Map Badge */}
+          {script.hasSourceMap && (
             <span className="text-xs bg-dark-700 text-white px-2 py-1 rounded border border-dark-600">
               📍 Source Map
             </span>
-          </div>
-        )}
+          )}
 
-        {script.fetchError && (
-          <div className="mt-2">
-            <span className="text-xs bg-red-900 text-red-200 px-2 py-1 rounded">
-              ⚠️ {script.fetchError === 'CORS_ERROR' ? 'CORS Blocked' : 'Unreadable'}
+          {/* Fetch Error Badge */}
+          {script.fetchError && (
+            <span className="text-xs bg-red-900 text-red-200 px-2 py-1 rounded border border-red-700">
+              ⚠️ {script.fetchError === 'CORS_ERROR' ? 'CORS Blocked' :
+                   script.fetchError === 'FETCH_FAILED' ? 'Fetch Failed' :
+                   script.fetchError}
             </span>
-          </div>
-        )}
+          )}
+
+          {/* File Name Badge (for imported files) */}
+          {script.type === 'imported' && script.fileName && (
+            <span className="text-xs bg-dark-800 text-gray-300 px-2 py-1 rounded border border-dark-600 font-mono">
+              {script.fileName}
+            </span>
+          )}
+        </div>
       </div>
     );
   };
@@ -125,10 +193,20 @@ export const FileList = () => {
   if (scripts.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
-        <div className="text-center">
-          <div className="text-4xl mb-4">📜</div>
-          <p>No scripts found</p>
-          <p className="text-xs mt-2">Click "Scan Scripts" to analyze the page</p>
+        <div className="text-center p-6">
+          <div className="text-5xl mb-4">📜</div>
+          <p className="font-medium text-white mb-2">No scripts found</p>
+          <p className="text-xs mt-2 mb-4">Get started by:</p>
+          <div className="space-y-2 text-xs text-left bg-dark-800 rounded p-4 border border-dark-700">
+            <div className="flex items-center space-x-2">
+              <span>🔄</span>
+              <span>Click "Scan Scripts" to analyze current page</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span>📥</span>
+              <span>Click "Import" to upload files or paste URLs</span>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -136,10 +214,22 @@ export const FileList = () => {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      {Object.entries(groupedByDomain).map(([domain, domainScripts]) => (
+      {Object.entries(groupedByDomain).sort((a, b) => {
+        // Sort order: Imported Files, Inline Scripts, then alphabetical
+        const order = {
+          '📁 Imported Files': 0,
+          '📄 Inline Scripts': 1
+        };
+        const aOrder = order[a[0]] ?? 2;
+        const bOrder = order[b[0]] ?? 2;
+
+        if (aOrder !== bOrder) return aOrder - bOrder;
+        return a[0].localeCompare(b[0]);
+      }).map(([domain, domainScripts]) => (
         <div key={domain}>
-          <div className="sticky top-0 bg-black px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-dark-700">
-            {domain} ({domainScripts.length})
+          <div className="sticky top-0 bg-black px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-dark-700 flex items-center justify-between">
+            <span>{domain}</span>
+            <span className="text-gray-500">({domainScripts.length})</span>
           </div>
           {domainScripts.map(script => (
             <ScriptItem key={script.url} script={script} />
