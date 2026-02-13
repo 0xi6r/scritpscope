@@ -4,30 +4,49 @@ import { useApp } from '../../context/AppContext';
 export const FileList = () => {
   const { scripts, selectedScript, setSelectedScript, findings } = useApp();
 
-  // Group scripts by first-party vs third-party
-  const { firstParty, thirdParty } = useMemo(() => {
-    const first = scripts.filter(s => s.firstParty);
-    const third = scripts.filter(s => !s.firstParty);
-    return { firstParty: first, thirdParty: third };
+  // Group scripts by domain
+  const groupedByDomain = useMemo(() => {
+    const groups = {};
+
+    scripts.forEach(script => {
+      let domain;
+      if (script.url.startsWith('inline-script')) {
+        domain = '📄 Inline Scripts';
+      } else {
+        try {
+          const url = new URL(script.url);
+          domain = url.hostname;
+        } catch {
+          domain = 'Unknown';
+        }
+      }
+
+      if (!groups[domain]) {
+        groups[domain] = [];
+      }
+      groups[domain].push(script);
+    });
+
+    return groups;
   }, [scripts]);
 
   const getRiskBadge = (script) => {
     const scriptFindings = findings.filter(f => f.scriptUrl === script.url);
 
     if (scriptFindings.length === 0) {
-      return { color: 'bg-green-500', text: 'Clean' };
+      return { color: 'bg-green-500', text: 'Clean', count: 0 };
     }
 
     const hasHigh = scriptFindings.some(f => f.risk === 'HIGH');
     const hasMedium = scriptFindings.some(f => f.risk === 'MEDIUM');
 
     if (hasHigh) {
-      return { color: 'bg-red-500', text: `${scriptFindings.length} issues`, count: scriptFindings.length };
+      return { color: 'bg-red-500', text: scriptFindings.length, count: scriptFindings.length };
     }
     if (hasMedium) {
-      return { color: 'bg-orange-500', text: `${scriptFindings.length} issues`, count: scriptFindings.length };
+      return { color: 'bg-orange-500', text: scriptFindings.length, count: scriptFindings.length };
     }
-    return { color: 'bg-yellow-500', text: `${scriptFindings.length} issues`, count: scriptFindings.length };
+    return { color: 'bg-yellow-500', text: scriptFindings.length, count: scriptFindings.length };
   };
 
   const formatSize = (bytes) => {
@@ -113,27 +132,16 @@ export const FileList = () => {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      {firstParty.length > 0 && (
-        <div>
+      {Object.entries(groupedByDomain).map(([domain, domainScripts]) => (
+        <div key={domain}>
           <div className="sticky top-0 bg-gray-900 px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-700">
-            First Party ({firstParty.length})
+            {domain} ({domainScripts.length})
           </div>
-          {firstParty.map(script => (
+          {domainScripts.map(script => (
             <ScriptItem key={script.url} script={script} />
           ))}
         </div>
-      )}
-
-      {thirdParty.length > 0 && (
-        <div>
-          <div className="sticky top-0 bg-gray-900 px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-700">
-            Third Party ({thirdParty.length})
-          </div>
-          {thirdParty.map(script => (
-            <ScriptItem key={script.url} script={script} />
-          ))}
-        </div>
-      )}
+      ))}
     </div>
   );
 };
