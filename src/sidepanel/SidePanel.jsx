@@ -25,34 +25,34 @@ const SidePanelContent = () => {
     await discoverScripts();
   };
 
-  const handleExport = () => {
-    // Export logic is in TopBar component
-  };
-
   const handleScanComplete = (findings) => {
     console.log('Scan complete:', findings.length, 'findings');
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-900 text-white">
-      <TopBar onScan={handleScan} onExport={handleExport} />
+    <div className="h-screen flex flex-col bg-gray-900 text-white overflow-hidden">
+      <TopBar onScan={handleScan} />
 
       {error && (
-        <div className="bg-red-900 border-b border-red-700 px-4 py-2 text-sm text-red-200">
+        <div className="bg-red-900 border-b border-red-700 px-4 py-2 text-sm text-red-200 flex-shrink-0">
           ⚠️ Error: {error}
         </div>
       )}
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden" style={{ minHeight: 0 }}>
         {/* Left Sidebar - File List */}
-        <div className="w-80 bg-gray-850 border-r border-gray-700 flex flex-col">
+        <div className="w-80 bg-gray-850 border-r border-gray-700 flex flex-col overflow-hidden">
           <FileList />
         </div>
 
         {/* Main Area - Code Viewer & Issues */}
-        <div className="flex-1 flex flex-col">
-          <CodeViewer onScanComplete={handleScanComplete} />
-          <IssuesDrawer />
+        <div className="flex-1 flex flex-col overflow-hidden" style={{ minHeight: 0 }}>
+          <div className="flex-1 overflow-hidden" style={{ minHeight: 0 }}>
+            <CodeViewer onScanComplete={handleScanComplete} />
+          </div>
+          <div className="flex-shrink-0">
+            <IssuesDrawer />
+          </div>
         </div>
       </div>
     </div>
