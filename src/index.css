@@ -23,32 +23,28 @@ body {
   overflow: hidden;
 }
 
-/* CodeMirror Scrolling Fixes */
+/* CodeMirror Scrolling - FIXED */
 .cm-editor {
-  height: 100%;
-  font-size: 13px;
+  height: 100% !important;
+  width: 100% !important;
 }
 
 .cm-scroller {
   overflow: auto !important;
-  height: 100%;
-  max-height: 100%;
+  overflow-x: auto !important;
+  overflow-y: scroll !important;
+  height: 100% !important;
 }
 
 .cm-content {
   padding: 10px 0;
+  min-height: 100%;
 }
 
 .cm-gutters {
   position: sticky;
   left: 0;
   z-index: 10;
-}
-
-/* Ensure proper scrolling */
-.cm-editor .cm-scroller {
-  overflow-x: auto !important;
-  overflow-y: auto !important;
 }
 
 /* Line highlighting */
@@ -58,21 +54,27 @@ body {
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
 }
 
 ::-webkit-scrollbar-track {
   background: #1e1e1e;
+  border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb {
   background: #4a4a4a;
-  border-radius: 4px;
+  border-radius: 6px;
+  border: 2px solid #1e1e1e;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: #5a5a5a;
+}
+
+::-webkit-scrollbar-corner {
+  background: #1e1e1e;
 }
 
 /* Firefox scrollbar */
@@ -81,10 +83,61 @@ body {
   scrollbar-color: #4a4a4a #1e1e1e;
 }
 
-/* Ensure editor container has proper height */
-.editor-container {
-  height: 100%;
+/* Resizable panels */
+.resize-handle {
+  position: relative;
+  user-select: none;
+}
+
+.resize-handle-vertical {
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.2s;
+}
+
+.resize-handle-vertical:hover,
+.resize-handle-vertical.dragging {
+  background: #3B82F6;
+}
+
+.resize-handle-horizontal {
+  height: 4px;
+  cursor: row-resize;
+  background: transparent;
+  transition: background 0.2s;
+}
+
+.resize-handle-horizontal:hover,
+.resize-handle-horizontal.dragging {
+  background: #3B82F6;
+}
+
+/* Minimized drawer */
+.drawer-minimized {
+  height: 40px !important;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
+}
+
+.drawer-maximized {
+  transition: height 0.3s ease;
+}
+
+/* Fade animations */
+.fade-enter {
+  opacity: 0;
+}
+
+.fade-enter-active {
+  opacity: 1;
+  transition: opacity 200ms;
+}
+
+.fade-exit {
+  opacity: 1;
+}
+
+.fade-exit-active {
+  opacity: 0;
+  transition: opacity 200ms;
 }
